@@ -33,7 +33,7 @@ pip-delete-this-directory.txt
 .cache
 .pytest_cache/
 # Jupyter Notebook
-.ipynb_checkpoints
+*.ipynb_checkpoints
 # IPython
 profile_default/
 ipython_config.py
@@ -53,7 +53,7 @@ env.bak/
 venv.bak/
 # New files / folders
 .DS_Store
-.Zone.Identifier
+*.Zone.Identifier
 # Ignore everything in the data directory
 data/*
 data/raw_data/*.csv
@@ -78,13 +78,13 @@ raw_data/*
 !notebooks/
 # Jupyter Notebook
 notebooks/*
-.ipynb_checkpoints
-.ipynb
+*.ipynb_checkpoints
+*.ipynb
 # Filenames
-.csv
-.parquet
-.pickle
-.h5
+*.csv
+*.parquet
+*.pickle
+*.h5
 #Env variable for Docker
 .env.yaml
 #Env variable for Streamlit
