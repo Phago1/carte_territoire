@@ -72,7 +72,7 @@ def tiles_viz(tile_name: str, file_path: Path):
     ax[2].imshow(labels_zoom, cmap="tab20", alpha=0.45)
     ax[2].set_title("Overlay")
     ax[2].axis("off")
-
+    
     plt.show()
 
     # --- Analyse classes ---
