@@ -2,6 +2,11 @@
 
 import numpy as np
 from params import *
+from google.cloud import storage
+import os
+import rasterio
+
+bucket_name = os.environ["BUCKET_NAME"]
 
 
 def slice_to_chunks(image: np.ndarray, label: np.ndarray):
@@ -108,3 +113,56 @@ def clear_for_chunk(label_array:np.ndarray, threshold:int):
     num_class0 = np.count_nonzero(label_array==0)
     ratio = num_class0 / num_pixel
     return ratio < threshold
+
+
+def pairs_crea():
+    """Parcourt le bucket en ligne pour identifier toutes les tuiles orthophotos
+    (ici celles dont le nom se termine par "res1.00m.tif").
+    Pour chaque tuile trouvée, on construit automatiquement avec glob le chemin
+    du fichier de labels associé en ajoutant le suffixe "_labels.tif".
+    La fonction check si le label existe puis renvoie une liste de paires (orthophoto, labels)
+    qu'on peut ensuite appeler comme dans une liste classique"""
+
+    client = storage.Client()
+    bucket = client.get_bucket(bucket_name)
+
+    # Liste les clés présentes dans le bucket
+    blobs = list(client.list_blobs(bucket, prefix=""))
+    all_names = {blob.name for blob in blobs}
+
+    ortho_files = [name for name in all_names if name.endswith("res1.00m.tif")]
+
+    pairs = []
+
+    for ortho in ortho_files:
+        stem = ortho[:-4]   # remove ".tif"
+        label = stem + "_labels.tif"
+
+        if label in all_names:
+            pairs.append(
+                (f"gs://{bucket_name}/{ortho}",
+                 f"gs://{bucket_name}/{label}")
+            )
+        else:
+            print(f"Label manquant pour : {ortho}")
+
+    return pairs
+
+
+def normalization(pairs):
+    """
+    Pour chaque paire (orthophoto, label), ouvre les deux fichiers,
+    convertit l'ortho en tableau NumPy normalisé (float32, valeurs 0-1),
+    et extrait la carte de labels sous forme d'un tableau entier.
+    La fonction renvoie une liste de tuples (image_normalisée, label).
+    """
+    normalized_pairs = []
+    for pair in pairs:
+        with rasterio.open(pair[0]) as ortho, rasterio.open(pair[1]) as label:
+
+            norm_ortho = ortho.read().astype("float32") / 255
+            norm_ortho = np.transpose(norm_ortho, (1, 2, 0))  # (H, W, C)
+
+            norm_label = np.array(label.read(1))
+            normalized_pairs.append((norm_ortho,norm_label))
+    return normalized_pairs
