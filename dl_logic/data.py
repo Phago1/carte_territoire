@@ -13,6 +13,8 @@ from rasterio.transform import Affine
 import matplotlib.pyplot as plt
 import numpy as np
 import random
+from google.cloud import storage
+import os
 
 # Fonction pour visualiser une tuile ortho et la tuile label correspondante.
 # Donner en argument une tuile ou une liste de tuiles SANS le .tif ou le _labels.tif
@@ -118,6 +120,7 @@ def label_tiles_info(prefix:str,suffix:str):
         Filename suffix identifying label files. Example: "_labels.tif".
     """
 
+    bucket_name = os.environ["BUCKET_NAME"]
     client = storage.Client()
     bucket = client.get_bucket(bucket_name)
 
