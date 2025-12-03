@@ -134,7 +134,7 @@ def compute_dataset_class_stats(labels_dir, suffix="_labels.tif"):
     # to check the directory
     labels_dir = Path(labels_dir)
     if not labels_dir.exists():
-        raise FileNotFoundError(f"Directory not found: {labels_dir}")
+        print(f"Directory not found: {labels_dir}")
 
     label_paths = sorted(
         p for p in labels_dir.iterdir()
@@ -142,7 +142,7 @@ def compute_dataset_class_stats(labels_dir, suffix="_labels.tif"):
     )
 
     if not label_paths:
-        raise RuntimeError(
+        print(
             f"No label files ending with '{suffix}' found in {labels_dir}"
         )
 
