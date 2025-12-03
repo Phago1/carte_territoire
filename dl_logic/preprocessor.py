@@ -116,7 +116,7 @@ def clear_for_chunk(label_array:np.ndarray, threshold:int):
 
 
 def pairs_crea():
-    """Parcourt le bucket en ligne pour identifier toutes les tuiles orthophotos
+    """Parcourt le bucket GCP pour identifier toutes les tuiles orthophotos
     (ici celles dont le nom se termine par "res1.00m.tif").
     Pour chaque tuile trouvée, on construit automatiquement avec glob le chemin
     du fichier de labels associé en ajoutant le suffixe "_labels.tif".
@@ -127,26 +127,29 @@ def pairs_crea():
     bucket = client.get_bucket(bucket_name)
 
     # Liste les clés présentes dans le bucket
-    blobs = list(client.list_blobs(bucket, prefix=""))
+    blobs = list(client.list_blobs(bucket, prefix="train/"))
     all_names = {blob.name for blob in blobs}
 
     ortho_files = [name for name in all_names if name.endswith("res1.00m.tif")]
 
-    pairs = []
+    pairs_ortho = []
+    pairs_labels = []
 
     for ortho in ortho_files:
         stem = ortho[:-4]   # remove ".tif"
         label = stem + "_labels.tif"
 
         if label in all_names:
-            pairs.append(
-                (f"gs://{bucket_name}/{ortho}",
-                 f"gs://{bucket_name}/{label}")
+            pairs_ortho.append(
+                f"gs://{bucket_name}/{ortho}"
+                )
+            pairs_labels.append(
+                f"gs://{bucket_name}/{label}"
             )
         else:
-            print(f"Label manquant pour : {ortho}")
+            print(f"Label manquant dans train/ pour : {ortho}")
 
-    return pairs
+    return (pairs_ortho, pairs_labels)
 
 
 def normalization(pairs):
