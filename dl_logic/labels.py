@@ -10,27 +10,25 @@ class Label:
     name: str        # color name
     color: str
 
-# original class definition by CoSIA
-flair_data = {
+
+# CoSIA doc
+flair_class_data = {
 1   : ['building','#db0e9a'] ,
 2   : ['pervious surface','#938e7b'],
 3   : ['impervious surface','#f80c00'],
-4   : ['bare soil','#a97101'],
-5   : ['water','#1553ae'],
-6   : ['coniferous','#194a26'],
-7   : ['deciduous','#46e483'],
-8   : ['brushwood','#f3a60d'],
-9   : ['vineyard','#660082'],
-10  : ['herbaceous vegetation','#55ff00'],
-11  : ['agricultural land','#fff30d'],
-12  : ['plowed land','#e4df7c'],
-13  : ['swimming_pool','#3de6eb'],
-14  : ['snow','#ffffff'],
-15  : ['clear cut','#8ab3a0'],
-16  : ['mixed','#6b714f'],
-17  : ['ligneous','#c5dc42'],
-18  : ['greenhouse','#9999ff'],
-19  : ['other','#000000'],
+4   : ['swimming_pool','#3de6eb'],
+5   : ['greenhouse','#9999ff'],
+6   : ['bare_soil','#a97101'],
+7   : ['water','#1553ae'],
+8   : ['snow','#ffffff'],
+9   : ['coniferous','#194a26'],
+10  : ['deciduous','#46e483'],
+11  : ['brushwood','#f3a60d'],
+12  : ['herbaceous vegetation','#55ff00'],
+13  : ['agricultural land','#fff30d'],
+14  : ['plowed land','#e4df7c'],
+15  : ['vineyard','#660082'],
+16  : ['other','#000000']
 }
 
 # Reduced schema
@@ -57,39 +55,36 @@ REDUCED_7 = {
 
 # mapping from original to reduce
 
-COSIA19_TO_REDUCED7 = {
-    # unchanged
-    3: 3,
-
+COSIA16_TO_REDUCED7 = {
     # buildings
     1: 1,
-    18: 1,
+    5: 1,
 
     # surface
     2: 2,
     3: 2,
 
     # water-like
-    5: 4,
-    13: 4,
+    4: 4,
+    7: 4,
+
+    # bare-soil
+    6: 3,
+    8: 3,
 
     # vegetation (coniferous, deciduous, brushwood, herbaceous vegetation)
-    6: 5,
-    7: 5,
-    8: 5,
+    9: 5,
     10: 5,
+    11: 5,
+    12: 5,
 
     # agriculture
-    9 : 6,
-    11 : 6,
-    12 : 6,
+    13 : 6,
+    14 : 6,
+    15 : 6,
 
     # everything else to 'other'
-    14: 7,
-    15: 7,
-    16: 7,
-    17: 7,
-    19: 7,
+    16: 7
 }
 
 
@@ -232,7 +227,7 @@ def build_table(mapping, max_src=19, default=0):
         lut[old] = new
     return lut
 
-LUT_19_TO_7 = build_table(COSIA19_TO_REDUCED7)
+LUT_19_TO_7 = build_table(COSIA16_TO_REDUCED7)
 
 def reduce_mask(mask):
     return LUT_19_TO_7[mask]
