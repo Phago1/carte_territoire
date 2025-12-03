@@ -120,7 +120,7 @@ def compute_dataset_class_stats(labels_dir, suffix="_labels.tif"):
     this function gives us the total value count for each class
     and their percentage
     """
-    # to check the directory
+    # to check the directory is good
     labels_dir = Path(labels_dir)
     if not labels_dir.exists():
         print(f"Directory not found: {labels_dir}")
@@ -169,6 +169,7 @@ def compute_per_file_class_stats(labels_dir, suffix="_labels.tif"):
     Retourne:
         dict : {filename: {class_id: count}}
     """
+    # to check the directory is good
     labels_dir = Path(labels_dir)
     if not labels_dir.exists():
         print(f"Directory not found: {labels_dir}")
@@ -212,8 +213,7 @@ def compute_per_file_class_stats(labels_dir, suffix="_labels.tif"):
 # -----------------------------------------------------
 #  Reduce Mask Visualization
 # -----------------------------------------------------
-# 1. Table de réduction 19 → 7
-
+# Table de réduction 16 → 7
 
 def build_table(mapping, max_src=16, default=0):
     lut = np.full(max_src + 1, default, dtype=np.uint8)
