@@ -72,7 +72,7 @@ def tiles_viz(tile_name: str, file_path: Path):
     ax[2].imshow(labels_zoom, cmap="tab20", alpha=0.45)
     ax[2].set_title("Overlay")
     ax[2].axis("off")
-    
+
     plt.show()
 
     # --- Analyse classes ---
@@ -91,3 +91,60 @@ def tiles_viz(tile_name: str, file_path: Path):
 
 # for t in tiles_to_test:
 #     tiles_viz(t, file_path)
+
+
+
+def label_tiles_info(prefix:str,suffix:str):
+    """
+    Inspect label tiles stored in a Google Cloud Storage bucket.
+
+    This function:
+    - lists all objects in the bucket whose path starts with the given `prefix`
+      (e.g., "train/"),
+    - filters them to keep only those whose filename ends with the given `suffix`
+      (e.g., "_labels.tif"),
+    - opens each matching GeoTIFF remotely via rasterio (using a gs:// URI),
+    - computes basic statistics on the raster mask:
+        - unique class values,
+        - pixel counts per class,
+        - percentage of non-zero pixels,
+    - prints a short summary for each label tile.
+
+    Parameters
+    ----------
+    prefix : str
+        Path prefix inside the bucket (simulates a directory). Example: "train/".
+    suffix : str
+        Filename suffix identifying label files. Example: "_labels.tif".
+    """
+
+    client = storage.Client()
+    bucket = client.get_bucket(bucket_name)
+
+    # List keys and files in bucket, with prexix train
+    blobs = list(client.list_blobs(bucket, prefix=prefix))
+    all_names = {blob.name for blob in blobs}
+
+    label_files = [
+        f"gs://{bucket_name}/{name}"
+        for name in all_names
+        if name.endswith(suffix)]
+
+    print("Nb tuiles trouvées :", len(label_files))
+
+    for lf in label_files:
+        with rasterio.open(lf) as src:
+            lab = src.read(1)
+            u, c = np.unique(lab, return_counts=True)
+            maxv = int(lab.max())
+            minv = int(lab.min())
+            nonzero = int((lab > 0).sum())
+            total = lab.size
+            pct_nonzero = nonzero / total * 100
+            weights = c / total * 100
+
+        print(f"\n{lf.split('/')[-1]}")
+        print("  nb classes uniques :", len(u))
+        print("  % de pixels non-nuls :", f"{round(pct_nonzero, 1)}%")
+        print("  classes présentes (valeurs) :", u[:20], "..." if len(u)>20 else "")
+        print("  poids classes (%) :", [round(w, 1) for w in weights])
