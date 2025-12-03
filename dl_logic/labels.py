@@ -172,6 +172,53 @@ def compute_dataset_class_stats(labels_dir, suffix="_labels.tif"):
 
     return total_counts
 
+def compute_per_file_class_stats(labels_dir, suffix="_labels.tif"):
+    """
+    Parcourt un dossier de labels, calcule les stats classe par classe
+    pour chaque fichier, les affiche et les retourne.
+
+    Retourne:
+        dict : {filename: {class_id: count}}
+    """
+    labels_dir = Path(labels_dir)
+    if not labels_dir.exists():
+        print(f"Directory not found: {labels_dir}")
+
+    label_paths = sorted(
+        p for p in labels_dir.iterdir()
+        if p.is_file() and p.name.endswith(suffix)
+    )
+
+    if not label_paths:
+        print(
+            f"No label files ending with '{suffix}' found in {labels_dir}"
+        )
+
+    print(f"Found {len(label_paths)} label files in {labels_dir}\n")
+
+    stats_per_file = {}
+
+    for path in label_paths:
+        print(f"=== {path.name} ===")
+        with rasterio.open(path) as src:
+            mask = src.read(1)
+
+        # Count classes in this file
+        file_stats = count_class(mask)
+        stats_per_file[path.name] = file_stats
+
+        # Pretty print
+        total_pixels = sum(file_stats.values())
+        print(f"Total pixels: {total_pixels}")
+        print("class_id,count,percentage")
+
+        for cls in sorted(file_stats.keys()):
+            count = file_stats[cls]
+            pct = 100.0 * count / total_pixels if total_pixels else 0.0
+            print(f"{cls},{count},{pct:.4f}")
+        print()
+
+    return stats_per_file
 
 # -----------------------------------------------------
 #  Reduce Mask Visualization
