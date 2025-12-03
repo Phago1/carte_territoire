@@ -121,7 +121,56 @@ def merge_counts(total_counts, new_counts):
         else:
             total_counts[cls] = cnt
 
+def compute_dataset_class_stats(labels_dir, suffix="_labels.tif"):
+    """
+    Docstring pour compute_dataset_class_stats
 
+    :param labels_dir: where the data is
+    :param suffix: by default it is '_labels.tif' to select only the targets
+
+    this function gives us the total value count for each class
+    and their percentage
+    """
+    # to check the directory
+    labels_dir = Path(labels_dir)
+    if not labels_dir.exists():
+        raise FileNotFoundError(f"Directory not found: {labels_dir}")
+
+    label_paths = sorted(
+        p for p in labels_dir.iterdir()
+        if p.is_file() and p.name.endswith(suffix)
+    )
+
+    if not label_paths:
+        raise RuntimeError(
+            f"No label files ending with '{suffix}' found in {labels_dir}"
+        )
+
+    total_counts = {}
+    total_pixels = 0
+
+    print(f"Found {len(label_paths)} label files in {labels_dir}\n")
+
+    for path in label_paths:
+        print(f"Processing {path.name} ...")
+        with rasterio.open(path) as src:
+            # assuming one-band label TIFF
+            mask = src.read(1)
+
+        file_counts = count_class(mask)
+        merge_counts(total_counts, file_counts)
+        total_pixels += sum(file_counts.values())
+
+    print("\n=== Global class distribution ===")
+    print(f"Total pixels: {total_pixels}")
+    print("class_id,count,percentage")
+
+    for cls in sorted(total_counts.keys()):
+        count = total_counts[cls]
+        pct = 100.0 * count / total_pixels if total_pixels > 0 else 0.0
+        print(f"{cls},{count},{pct:.4f}")
+
+    return total_counts
 
 
 # -----------------------------------------------------
