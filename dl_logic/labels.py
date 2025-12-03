@@ -59,30 +59,24 @@ COSIA16_TO_REDUCED7 = {
     # buildings
     1: 1,
     5: 1,
-
     # surface
     2: 2,
     3: 2,
-
     # water-like
     4: 4,
     7: 4,
-
     # bare-soil
     6: 3,
     8: 3,
-
     # vegetation (coniferous, deciduous, brushwood, herbaceous vegetation)
     9: 5,
     10: 5,
     11: 5,
     12: 5,
-
     # agriculture
     13 : 6,
     14 : 6,
     15 : 6,
-
     # everything else to 'other'
     16: 7
 }
@@ -221,23 +215,23 @@ def compute_per_file_class_stats(labels_dir, suffix="_labels.tif"):
 # 1. Table de réduction 19 → 7
 
 
-def build_table(mapping, max_src=19, default=0):
+def build_table(mapping, max_src=16, default=0):
     lut = np.full(max_src + 1, default, dtype=np.uint8)
     for old, new in mapping.items():
         lut[old] = new
     return lut
 
-LUT_19_TO_7 = build_table(COSIA16_TO_REDUCED7)
+LUT_16_TO_7 = build_table(COSIA16_TO_REDUCED7)
 
 def reduce_mask(mask):
-    return LUT_19_TO_7[mask]
+    return LUT_16_TO_7[mask]
 
 
 def visualize_label_reduction(image_path, label_path, title=None):
     """
     Affiche côte à côte :
       - l'image aérienne (3 canaux)
-      - le masque original (19 classes)
+      - le masque original (16 classes)
       - le masque réduit (7 classes)
     """
 
@@ -245,12 +239,12 @@ def visualize_label_reduction(image_path, label_path, title=None):
     with rasterio.open(image_path) as src:
         img = src.read([1, 2, 3]).transpose(1, 2, 0)  # (H, W, 3)
 
-    # Charger le masque 19 classes
+    # Charger le masque 16 classes
     with rasterio.open(label_path) as src:
-        mask19 = src.read(1)
+        mask16 = src.read(1)
 
-    # Réduction 19 → 7
-    mask7 = reduce_mask(mask19)
+    # Réduction 16 → 7
+    mask7 = reduce_mask(mask16)
 
     # Affichage
     plt.figure(figsize=(16, 6))
@@ -264,8 +258,8 @@ def visualize_label_reduction(image_path, label_path, title=None):
     plt.axis("off")
 
     plt.subplot(1, 3, 2)
-    plt.title("Masque original (19 classes)")
-    plt.imshow(mask19, cmap="tab20")
+    plt.title("Masque original (16 classes)")
+    plt.imshow(mask16, cmap="tab20")
     plt.colorbar(fraction=0.046, pad=0.04)
     plt.axis("off")
 
