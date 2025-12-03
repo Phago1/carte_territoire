@@ -2,6 +2,7 @@
 import numpy as np
 import rasterio
 from pathlib import Path
+import matplotlib.pyplot as plt
 
 class Label:
     """Represents a single land-cover class."""
@@ -55,6 +56,7 @@ REDUCED_7 = {
 }
 
 # mapping from original to reduce
+
 COSIA19_TO_REDUCED7 = {
     # unchanged
     3: 3,
@@ -89,9 +91,98 @@ COSIA19_TO_REDUCED7 = {
     17: 7,
     19: 7,
 }
-# def count_class(mask):
-#     values, counts = np.unique(mask, return_counts=True)
-#     result = {}
-#     for v, c in zip(values, counts):
-#         result[int(v)] = int(c)
-#     return result
+
+
+# -----------------------------------------------------
+#  Target statistics
+# -----------------------------------------------------
+def count_class(mask):
+    """
+    count_class takes one image, gives the distribution of class
+    and returns a dictionary
+    """
+    values, counts = np.unique(mask, return_counts=True)
+    result = {}
+    for v, c in zip(values, counts):
+        result[int(v)] = int(c)
+    return result
+
+def merge_counts(total_counts, new_counts):
+    """
+    Docstring pour merge_counts
+
+    :param total_counts: Description
+    :param new_counts: Description
+    merge_counts merge two dictionaries
+    """
+    for cls, cnt in new_counts.items():
+        if cls in total_counts:
+            total_counts[cls] += cnt
+        else:
+            total_counts[cls] = cnt
+
+
+
+
+# -----------------------------------------------------
+#  Reduce Mask Visualization
+# -----------------------------------------------------
+# 1. Table de réduction 19 → 7
+
+
+def build_table(mapping, max_src=19, default=0):
+    lut = np.full(max_src + 1, default, dtype=np.uint8)
+    for old, new in mapping.items():
+        lut[old] = new
+    return lut
+
+LUT_19_TO_7 = build_table(COSIA19_TO_REDUCED7)
+
+def reduce_mask(mask):
+    return LUT_19_TO_7[mask]
+
+
+def visualize_label_reduction(image_path, label_path, title=None):
+    """
+    Affiche côte à côte :
+      - l'image aérienne (3 canaux)
+      - le masque original (19 classes)
+      - le masque réduit (7 classes)
+    """
+
+    # Charger l'image (on suppose 3 canaux dans le TIF)
+    with rasterio.open(image_path) as src:
+        img = src.read([1, 2, 3]).transpose(1, 2, 0)  # (H, W, 3)
+
+    # Charger le masque 19 classes
+    with rasterio.open(label_path) as src:
+        mask19 = src.read(1)
+
+    # Réduction 19 → 7
+    mask7 = reduce_mask(mask19)
+
+    # Affichage
+    plt.figure(figsize=(16, 6))
+
+    if title is not None:
+        plt.suptitle(title, fontsize=14)
+
+    plt.subplot(1, 3, 1)
+    plt.title("Image aérienne (RGB)")
+    plt.imshow(img)
+    plt.axis("off")
+
+    plt.subplot(1, 3, 2)
+    plt.title("Masque original (19 classes)")
+    plt.imshow(mask19, cmap="tab20")
+    plt.colorbar(fraction=0.046, pad=0.04)
+    plt.axis("off")
+
+    plt.subplot(1, 3, 3)
+    plt.title("Masque réduit (7 classes)")
+    plt.imshow(mask7, cmap="tab10")
+    plt.colorbar(fraction=0.046, pad=0.04)
+    plt.axis("off")
+
+    plt.tight_layout()
+    plt.show()
