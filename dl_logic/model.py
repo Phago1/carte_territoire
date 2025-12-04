@@ -48,7 +48,7 @@ def compile_model(model, target_class_ids: list, learning_rate=0.01):
 
     adam = Adam(learning_rate=learning_rate)
 
-    IoU = metrics.IoU(num_classes=len(target_class_ids), target_class_ids=target_class_ids, sparse_y_true=True, sparse_y_pred=False)
+    IoU = metrics.IoU(num_classes=len(target_class_ids), target_class_ids=target_class_ids, sparse_y_true=True, sparse_y_pred=True)
 
     model.compile(optimizer=adam,
                   loss='sparse_categorical_crossentropy',
@@ -58,21 +58,23 @@ def compile_model(model, target_class_ids: list, learning_rate=0.01):
     return model
 
 
-# def train_model(model, ds_train, ds_val, shuffle=True, epochs=30, batch_size=BATCH_SIZE, patience=3): #still to adjust with the definitive validation set
-#     """
-#
-#     """
+def DS_train_model(model, ds_train, ds_val, epochs=30, batch_size=BATCH_SIZE, patience=3): #still to adjust with the definitive validation set
+    """
 
-#     es = EarlyStopping(patience=patience, restore_best_weights=True)
+    """
 
-#     history = model.fit(ds_train,
-#               validation_data=ds_val,
-#               epochs=epochs,
-#               batch_size=batch_size,
-#               callbacks=[es],
-#               shuffle=shuffle)
+    es = EarlyStopping(patience=patience, restore_best_weights=True)
 
-#     return history, model
+    history = model.fit(ds_train,
+              validation_data=ds_val,
+              epochs=epochs,
+              batch_size=batch_size,
+              callbacks=[es]
+    )
+
+
+    return history, model
+
 
 def JUNK_train_model(model, X_train, y_train, X_val, y_val, shuffle=True, epochs=30, batch_size=16, patience=3): #still to adjust with the definitive validation set
     """
