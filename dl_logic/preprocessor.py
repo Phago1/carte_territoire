@@ -164,8 +164,8 @@ def chunk_generator(prefix:str):
     """
     ortho_paths, label_paths = pairs_crea(prefix=prefix)
     if prefix == "train/":   # TO REMOVE WHEN GOING FULL SCALE
-        ortho_paths = ortho_paths[5:10]
-        label_paths = label_paths[5:10]
+        ortho_paths = ortho_paths
+        label_paths = label_paths
 
     for ortho_path, label_path in zip(ortho_paths, label_paths):
         with rasterio.open(ortho_path) as src_o:
@@ -200,7 +200,7 @@ def get_tf_dataset(
             ),
             tf.TensorSpec(
                 shape=(CHUNK_SIZE, CHUNK_SIZE),
-                dtype=tf.int32
+                dtype=tf.float32
             ),
         )
     )
