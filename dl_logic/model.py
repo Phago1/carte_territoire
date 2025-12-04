@@ -9,7 +9,7 @@ import numpy as np
 import tensorflow as tf
 from params import *
 
-def initialize_model(input_shape: tuple, number_of_classes: int):
+def initialize_CNN_model(input_shape: tuple, number_of_classes: int):
     """
     input_shape usualy like X_train.shape[1:]
     repoduced from state-of-the-art recommandation:
@@ -38,14 +38,33 @@ def initialize_model(input_shape: tuple, number_of_classes: int):
 
     model.add(layers.Conv2D(number_of_classes, 1, padding='same', activation='softmax'))
 
+    model.model_name = "cnn"
+
     return model
 
 
-def compile_model(model, number_of_classes: int, learning_rate=0.001):
+def compile_model(model, number_of_classes: int):
     """
     target_class_ids must contain the ids of the classes to be classified.
     It is used by keras.metrics to compute the IoU for each class in this list.
     """
+    def combined_loss(y_true, y_pred):
+        """
+        one-hot-encode y_true so dice and focal losses can be computed
+        tf.one_hot need integer inputs while they are originaly float32
+        --> tf.cast to encode in int32
+        then create a custom function merging dice and focal losses
+
+        """
+        y_true = tf.cast(y_true, tf.int32)
+        y_true_oh = tf.one_hot(y_true, depth=number_of_classes)
+
+        dice_loss = losses.Dice(reduction='sum_over_batch_size', name='dice')
+        focal_loss = losses.CategoricalFocalCrossentropy(reduction='sum_over_batch_size', name='focal')
+
+        total_loss = 0.5*dice_loss(y_true_oh, y_pred) + 0.5*focal_loss(y_true_oh, y_pred)
+
+        return total_loss
 
     lr_schedule = schedules.ExponentialDecay(
         initial_learning_rate=1e-3,
@@ -59,7 +78,7 @@ def compile_model(model, number_of_classes: int, learning_rate=0.001):
     IoU = metrics.MeanIoU(num_classes=number_of_classes, sparse_y_true=True, sparse_y_pred=False)
 
     model.compile(optimizer=optimizer,
-                  loss='sparse_categorical_crossentropy',
+                  loss=combined_loss,
                   metrics=['accuracy',
                            IoU
                            ]
@@ -68,9 +87,9 @@ def compile_model(model, number_of_classes: int, learning_rate=0.001):
     return model
 
 
-def DS_train_model(model, ds_train, ds_val, epochs=30, batch_size = BATCH_SIZE, patience=3): #still to adjust with the definitive validation set
+def train_model(model, ds_train, ds_val, epochs=30, batch_size = BATCH_SIZE, patience=3):
     """
-
+    train model from train and val tensorfflow datasets
     """
 
     es = EarlyStopping(patience=patience, restore_best_weights=True)
@@ -81,25 +100,6 @@ def DS_train_model(model, ds_train, ds_val, epochs=30, batch_size = BATCH_SIZE, 
               batch_size=batch_size,
               callbacks=[es]
               )
-
-    return history, model
-
-
-def JUNK_train_model(model, X_train, y_train, X_val, y_val, shuffle=True, epochs=30, batch_size=BATCH_SIZE, patience=3): #still to adjust with the definitive validation set
-    """
-    Function used to train model with no train/val set loading from bucket.
-    To be erased when to old.
-    """
-
-    es = EarlyStopping(patience=patience, restore_best_weights=True)
-
-    history = model.fit(X_train,
-                        y_train,
-                        validation_data=(X_val, y_val),
-                        epochs=epochs,
-                        batch_size=batch_size,
-                        callbacks=[es],
-                        shuffle=shuffle)
 
     return history, model
 
@@ -248,5 +248,7 @@ def initialize_unet_model(input_shape: tuple, number_of_classes: int):
 
     outputs = layers.Conv2D(number_of_classes, 1, activation='softmax')(c9)
     model = Model(inputs=[inputs], outputs=[outputs])
+
+    model.model_name = "unet"
 
     return model
