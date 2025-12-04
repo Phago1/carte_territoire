@@ -37,3 +37,12 @@ else:
 model = initialize_model((CHUNK_SIZE, CHUNK_SIZE), 7 is LBL_REDUCTION else 15)
 model = compile_model(model, target_class_ID)
 # model, history = train_model(model, X_train, y_train TODO
+
+# metrics
+IoU = np.min(history.history['iou'])
+
+params = dict(
+        context="train",
+        chunk_size=CHUNK_SIZE,
+        row_count=len(X_train),
+    )
