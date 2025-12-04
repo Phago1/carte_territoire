@@ -19,7 +19,7 @@ from mlflow.tracking import MlflowClient
 
 """
 dans le main il faut créer un dictionnaire pour params et metrics aves les valeurs qu'on veut sauvegarder
-metrics c'est Iou
+pour metrics: Iou et ??
 dans le main:
 Iou = dict(Iou = np.min(history.history['iou']))
 params = dict(
@@ -31,13 +31,7 @@ params = dict(
 """
 def save_results(params: dict, metrics: dict):
 
-    if MODEL_TARGET == "mlflow":
-        if params is not None:
-            mlflow.log_params(params)
-        if metrics is not None:
-            mlflow.log_metrics(metrics)
-        print("✅ Results saved on MLflow")
-
+    timestamp = time.strftime("%Y%m%d-%H%M%S")
 
     # Save params locally
     if params is not None:
@@ -53,6 +47,24 @@ def save_results(params: dict, metrics: dict):
 
     print("✅ Results saved locally")
 
+    # Google Cloud Storage saving
+    if MODEL_TARGET == "gcs":
+#        try:               # recommended cause uploading can fail
+        client = storage.Client()
+        bucket = client.bucket(BUCKET_NAME)
+
+            # Upload params
+        if params is not None:
+            params_blob = bucket.blob(f"training_output/params/{timestamp}.pickle")
+            params_blob.upload_from_filename(params_path)
+
+            # Upload metrics
+        if metrics is not None:
+            metrics_blob = bucket.blob(f"training_output/metrics/{timestamp}.pickle")
+            metrics_blob.upload_from_filename(metrics_path)
+
+        print(f"✅ Results uploaded to GCS bucket '{BUCKET_NAME}'")
+
 def save_model(model: keras.Model = None) -> None:
     """
     Persist trained model locally on the hard drive at f"{LOCAL_REGISTRY_PATH}/models/{timestamp}.h5"
@@ -61,12 +73,13 @@ def save_model(model: keras.Model = None) -> None:
     """
 
     timestamp = time.strftime("%Y%m%d-%H%M%S")
-
-    # Save model locally
     model_path = os.path.join(LOCAL_REGISTRY_PATH, "models", f"{timestamp}.h5")
-    model.save(model_path)
+    # Save model locally
+    if LOCAL_SAVE == 'yes':
+        model_path = os.path.join(LOCAL_REGISTRY_PATH, "models", f"{timestamp}.h5")
+        model.save(model_path)
 
-    print("✅ Model saved locally")
+        print("✅ Model saved locally")
 
     if MODEL_TARGET == "gcs":
         # 🎁 We give you this piece of code as a gift. Please read it carefully! Add a breakpoint if needed!
@@ -78,17 +91,6 @@ def save_model(model: keras.Model = None) -> None:
         blob.upload_from_filename(model_path)
 
         print("✅ Model saved to GCS")
-
-        return None
-
-    if MODEL_TARGET == "mlflow":
-        mlflow.tensorflow.log_model(
-            model=model,
-            artifact_path="model",
-            registered_model_name=MLFLOW_MODEL_NAME
-        )
-
-        print("✅ Model saved to MLflow")
 
         return None
 
