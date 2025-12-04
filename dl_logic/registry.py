@@ -21,7 +21,7 @@ from mlflow.tracking import MlflowClient
 dans le main il faut créer un dictionnaire pour params et metrics aves les valeurs qu'on veut sauvegarder
 pour metrics: Iou et ??
 dans le main:
-Iou = dict(Iou = np.min(history.history['iou']))
+IoU = dict(Iou = np.min(history.history['iou']))
 params = dict(
         context="train",
         class_number= ...,

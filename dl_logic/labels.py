@@ -109,6 +109,7 @@ def merge_counts(total_counts, new_counts):
             total_counts[cls] += cnt
         else:
             total_counts[cls] = cnt
+    return total_counts
 
 def compute_dataset_class_stats(labels_dir, suffix="_labels.tif"):
     """
