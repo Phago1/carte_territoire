@@ -1,3 +1,5 @@
+import os
+
 # Size of the chunk to train the model (e.g. 256 x 256)
 CHUNK_SIZE=256
 
@@ -17,5 +19,6 @@ DATA_LOCATION = os.environ.get('DATA_LOCATION')
 MODEL_TARGET = os.environ.get('MODEL_TARGET')
 BUCKET_NAME  = os.environ.get('BUCKET_NAME')
 
-# Where we
+# local save
+LOCAL_SAVE = os.environ.get('LOCAL_SAVE')
 LOCAL_REGISTRY_PATH =  os.path.join(os.path.expanduser('~'), "Code", "Phago1","training_outputs")
