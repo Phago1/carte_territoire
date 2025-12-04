@@ -5,9 +5,9 @@ from params import *
 from google.cloud import storage
 import os
 import rasterio
+import tensorflow as tf
 
 bucket_name = os.environ["BUCKET_NAME"]
-
 
 def slice_to_chunks(image: np.ndarray, label: np.ndarray):
     """
@@ -115,7 +115,7 @@ def clear_for_chunk(label_array:np.ndarray, threshold:int):
     return ratio < threshold
 
 
-def pairs_crea():
+def pairs_crea(prefix:str ="train/"):
     """Parcourt le bucket GCP pour identifier toutes les tuiles orthophotos
     (ici celles dont le nom se termine par "res1.00m.tif").
     Pour chaque tuile trouvée, on construit automatiquement avec glob le chemin
@@ -127,7 +127,7 @@ def pairs_crea():
     bucket = client.get_bucket(bucket_name)
 
     # Liste les clés présentes dans le bucket
-    blobs = list(client.list_blobs(bucket, prefix="train/"))
+    blobs = list(client.list_blobs(bucket, prefix=prefix))
     all_names = {blob.name for blob in blobs}
 
     ortho_files = [name for name in all_names if name.endswith("res1.00m.tif")]
@@ -152,20 +152,58 @@ def pairs_crea():
     return (pairs_ortho, pairs_labels)
 
 
-def normalization(pairs):
+def chunk_generator(prefix:str):
     """
-    Pour chaque paire (orthophoto, label), ouvre les deux fichiers,
-    convertit l'ortho en tableau NumPy normalisé (float32, valeurs 0-1),
-    et extrait la carte de labels sous forme d'un tableau entier.
-    La fonction renvoie une liste de tuples (image_normalisée, label).
+    Function to avoid overloading RAM
+
+    Generator that:
+      - iterates through tile pairs from the GCP bucket,
+      - loads each tile with rasterio,
+      - calls slice_to_chunks(),
+      - yields each chunk one by one (image_chunk, label_chunk).
     """
-    normalized_pairs = []
-    for pair in pairs:
-        with rasterio.open(pair[0]) as ortho, rasterio.open(pair[1]) as label:
+    ortho_paths, label_paths = pairs_crea(prefix=prefix)
+    if prefix == "train/":   # TO REMOVE WHEN GOING FULL SCALE
+        ortho_paths = ortho_paths[5:10]
+        label_paths = label_paths[5:10]
 
-            norm_ortho = ortho.read().astype("float32") / 255
-            norm_ortho = np.transpose(norm_ortho, (1, 2, 0))  # (H, W, C)
+    for ortho_path, label_path in zip(ortho_paths, label_paths):
+        with rasterio.open(ortho_path) as src_o:
+            image = src_o.read()
+            image = np.transpose(image, (1, 2, 0)).astype("float32") / 255.0
 
-            norm_label = np.array(label.read(1))
-            normalized_pairs.append((norm_ortho,norm_label))
-    return normalized_pairs
+        with rasterio.open(label_path) as src_l:
+            label = src_l.read(1).astype("int32")
+
+        img_chunks, lab_chunks = slice_to_chunks(image, label)
+
+        for img_chunk, lab_chunk in zip(img_chunks, lab_chunks):
+            yield img_chunk, lab_chunk
+
+
+def get_tf_dataset(
+    prefix: str,
+    batch_size: int = BATCH_SIZE,
+    shuffle_buffer: int = 1024) -> tf.data.Dataset:
+    """
+    Build a tf.data.Dataset from tiles under the given prefix ('train/' or 'val/').
+
+    The dataset yields (X, y) batches directly consumable by model.fit().
+    """
+
+    ds = tf.data.Dataset.from_generator(
+        lambda: chunk_generator(prefix),
+        output_signature=(
+            tf.TensorSpec(
+                shape=(CHUNK_SIZE, CHUNK_SIZE, 3),
+                dtype=tf.float32
+            ),
+            tf.TensorSpec(
+                shape=(CHUNK_SIZE, CHUNK_SIZE),
+                dtype=tf.int32
+            ),
+        )
+    )
+
+    ds = ds.shuffle(shuffle_buffer).batch(batch_size).prefetch(tf.data.AUTOTUNE)
+    return ds
