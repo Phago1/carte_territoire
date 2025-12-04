@@ -7,7 +7,7 @@ import os
 import rasterio
 import tensorflow as tf
 
-bucket_name = os.environ["BUCKET_NAME"]
+bucket_name = BUCKET_NAME
 
 def slice_to_chunks(image: np.ndarray, label: np.ndarray):
     """
