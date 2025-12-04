@@ -1,12 +1,13 @@
 # Here we initialize, compile, train and evaluate the model
 
-from keras import Sequential, layers, metrics, Input
+from keras import Sequential, layers, metrics, losses, Input
 from keras.models import Model
-from keras.optimizers import Adam
+from keras.optimizers import Adam, schedules
 from keras.callbacks import EarlyStopping
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
+from params import *
 
 def initialize_model(input_shape: tuple, number_of_classes: int):
     """
@@ -19,7 +20,7 @@ def initialize_model(input_shape: tuple, number_of_classes: int):
 
     model.add(Input(shape=input_shape))
 
-    model.add(layers.Rescaling(1.0/255)) #to remove when rescale included in pipe
+    # model.add(layers.Rescaling(1.0/255)) #to remove when rescale included in pipe
 
     model.add(layers.Conv2D(64, 3, strides=2, padding='same', activation='relu'))
     model.add(layers.Conv2D(64, 3, padding='same', activation='relu'))
@@ -40,25 +41,34 @@ def initialize_model(input_shape: tuple, number_of_classes: int):
     return model
 
 
-def compile_model(model, target_class_ids: list, learning_rate=0.01):
+def compile_model(model, number_of_classes: int, learning_rate=0.001):
     """
     target_class_ids must contain the ids of the classes to be classified.
     It is used by keras.metrics to compute the IoU for each class in this list.
     """
 
-    adam = Adam(learning_rate=learning_rate)
+    lr_schedule = schedules.ExponentialDecay(
+        initial_learning_rate=1e-3,
+        decay_steps=10000,
+        decay_rate=0.9,
+        staircase=True
+        )
 
-    IoU = metrics.IoU(num_classes=len(target_class_ids), target_class_ids=target_class_ids, sparse_y_true=True, sparse_y_pred=True)
+    optimizer = Adam(learning_rate=lr_schedule)
 
-    model.compile(optimizer=adam,
+    IoU = metrics.MeanIoU(num_classes=number_of_classes, sparse_y_true=True, sparse_y_pred=False)
+
+    model.compile(optimizer=optimizer,
                   loss='sparse_categorical_crossentropy',
-                  metrics=[IoU]
+                  metrics=['accuracy',
+                           IoU
+                           ]
                   )
 
     return model
 
 
-def DS_train_model(model, ds_train, ds_val, epochs=30, batch_size=BATCH_SIZE, patience=3): #still to adjust with the definitive validation set
+def DS_train_model(model, ds_train, ds_val, epochs=30, batch_size = BATCH_SIZE, patience=3): #still to adjust with the definitive validation set
     """
 
     """
@@ -70,13 +80,12 @@ def DS_train_model(model, ds_train, ds_val, epochs=30, batch_size=BATCH_SIZE, pa
               epochs=epochs,
               batch_size=batch_size,
               callbacks=[es]
-    )
-
+              )
 
     return history, model
 
 
-def JUNK_train_model(model, X_train, y_train, X_val, y_val, shuffle=True, epochs=30, batch_size=16, patience=3): #still to adjust with the definitive validation set
+def JUNK_train_model(model, X_train, y_train, X_val, y_val, shuffle=True, epochs=30, batch_size=BATCH_SIZE, patience=3): #still to adjust with the definitive validation set
     """
     Function used to train model with no train/val set loading from bucket.
     To be erased when to old.
@@ -183,7 +192,7 @@ def initialize_unet_model(input_shape: tuple, number_of_classes: int):
     """
 
     inputs = Input(shape=input_shape)
-    inputs = layers.Rescaling(1.0/255)(inputs) #to remove when rescale included in pipe
+    # inputs = layers.Rescaling(1.0/255)(inputs) #to remove when rescale included in pipe
 
     s = inputs
 
