@@ -115,7 +115,7 @@ def clear_for_chunk(label_array:np.ndarray, threshold:int):
     return ratio < threshold
 
 
-def pairs_crea():
+def pairs_crea(prefix:str ="train/"):
     """Parcourt le bucket GCP pour identifier toutes les tuiles orthophotos
     (ici celles dont le nom se termine par "res1.00m.tif").
     Pour chaque tuile trouvée, on construit automatiquement avec glob le chemin
@@ -127,7 +127,7 @@ def pairs_crea():
     bucket = client.get_bucket(bucket_name)
 
     # Liste les clés présentes dans le bucket
-    blobs = list(client.list_blobs(bucket, prefix="train/"))
+    blobs = list(client.list_blobs(bucket, prefix=prefix))
     all_names = {blob.name for blob in blobs}
 
     ortho_files = [name for name in all_names if name.endswith("res1.00m.tif")]
@@ -163,6 +163,9 @@ def chunk_generator(prefix:str):
       - yields each chunk one by one (image_chunk, label_chunk).
     """
     ortho_paths, label_paths = pairs_crea(prefix=prefix)
+    if prefix == "train/":   # TO REMOVE WHEN GOING FULL SCALE
+        ortho_paths = ortho_paths[5:10]
+        label_paths = label_paths[5:10]
 
     for ortho_path, label_path in zip(ortho_paths, label_paths):
         with rasterio.open(ortho_path) as src_o:
@@ -181,8 +184,7 @@ def chunk_generator(prefix:str):
 def get_tf_dataset(
     prefix: str,
     batch_size: int = BATCH_SIZE,
-    shuffle_buffer: int = 1024
-) -> tf.data.Dataset:
+    shuffle_buffer: int = 1024) -> tf.data.Dataset:
     """
     Build a tf.data.Dataset from tiles under the given prefix ('train/' or 'val/').
 
@@ -198,7 +200,7 @@ def get_tf_dataset(
             ),
             tf.TensorSpec(
                 shape=(CHUNK_SIZE, CHUNK_SIZE),
-                dtype=tf.int32          
+                dtype=tf.int32
             ),
         )
     )
