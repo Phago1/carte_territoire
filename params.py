@@ -6,6 +6,9 @@ CHUNK_SIZE=256
 # Threshold of class null > if 0.1 -> chunk with less than 10% of class null is cleared for model training
 THRESHOLD_0=0.1
 
+# Size of the batch to train the model
+BATCH_SIZE=32
+
 # Reduction of number of classes from 15 to 7 : True or False, if True we work in 7 classes
 LBL_REDUCTION=False
 
