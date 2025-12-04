@@ -7,5 +7,15 @@ THRESHOLD_0=0.1
 # Reduction of number of classes from 15 to 7 : True or False, if True we work in 7 classes
 LBL_REDUCTION=False
 
-# Batch size for the dataset & the model training
-BATCH_SIZE=32
+# DATA_LOCATION dans .env est - gcs pour google cloud storage
+#                             - local
+DATA_LOCATION = os.environ.get('DATA_LOCATION')
+
+# MODEL_TARGET dans .env est - mlflow
+#                            - gcs
+#                            - local
+MODEL_TARGET = os.environ.get('MODEL_TARGET')
+BUCKET_NAME  = os.environ.get('BUCKET_NAME')
+
+# Where we
+LOCAL_REGISTRY_PATH =  os.path.join(os.path.expanduser('~'), "Code", "Phago1","training_outputs")
