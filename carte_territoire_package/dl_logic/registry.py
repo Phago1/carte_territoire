@@ -3,7 +3,7 @@
 # function to load the model
 
 # libraries
-from params import *
+from carte_territoire_package.params import *
 
 import glob
 import pickle
