@@ -7,7 +7,7 @@ from keras.callbacks import EarlyStopping
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
-from params import *
+from carte_territoire_package.params import *
 
 def initialize_CNN_model(input_shape: tuple, number_of_classes: int):
     """

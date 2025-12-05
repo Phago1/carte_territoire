@@ -8,7 +8,7 @@ from fastapi import FastAPI, File, UploadFile, Response
 from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image
 from keras import models
-from carte_territoire.dl_logic.model import predict_model
+from carte_territoire_package.dl_logic.model import predict_model
 
 CHUNK_SIZE=256
 app = FastAPI()
