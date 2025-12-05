@@ -54,6 +54,8 @@ venv.bak/
 # New files / folders
 .DS_Store
 *.Zone.Identifier
+training-outputs
+training-outputs/
 # Ignore everything in the data directory
 data/*
 data/raw_data/*.csv
