@@ -94,3 +94,5 @@ app/.streamlit/secrets.toml
 .streamlit/secrets.toml
 outputs/models_ml
 outputs/*.zip
+# Trained models
+trained_models/*
