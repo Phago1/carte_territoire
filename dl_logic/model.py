@@ -189,6 +189,7 @@ def plot_predict(X_pred, y_pred, y_label):
 def initialize_unet_model(input_shape: tuple, number_of_classes: int):
     """
     taken from: https://github.com/ChinmayParanjape/Satellite-imagery-segmentation-using-U-NET/blob/main/SEGMENTATION_MODEL_AND%C2%A0_PREPROCESSING.ipynb
+
     """
 
     inputs = Input(shape=input_shape)
@@ -250,5 +251,75 @@ def initialize_unet_model(input_shape: tuple, number_of_classes: int):
     model = Model(inputs=[inputs], outputs=[outputs])
 
     model.model_name = "unet"
+
+    return model
+
+
+def conv_block(inputs, num_filters):
+    x = tf.keras.Sequential([
+        layers.Conv2D(num_filters, 3, padding='same'),
+        layers.BatchNormalization(),
+        layers.Activation('relu'),
+        layers.Conv2D(num_filters, 3, padding='same'),
+        layers.BatchNormalization(),
+        layers.Activation('relu'),
+    ])(inputs)
+    return x
+
+
+def initialize_unet_plus_model(input_shape: tuple,
+                               number_of_classes: int,
+                               deep_supervision: bool = False):
+    """
+    U-Net++ model.
+
+    U-Net++ is an enhanced version of the original U-Net architecture.
+    It replaces each skip-connection with a series of intermediate convolutional blocks,
+    allowing feature maps to be progressively refined before being passed to the decoder.
+    This leads to better multi-scale feature fusion, sharper boundaries, and improved
+    segmentation of small or complex structures compared to vanilla U-Net.
+    """
+
+    inputs = Input(shape=input_shape)
+
+    # ========= ENCODER =========
+    x_00 = conv_block(inputs, 16)
+    x_10 = conv_block(layers.MaxPooling2D((2, 2))(x_00), 32)
+    x_20 = conv_block(layers.MaxPooling2D((2, 2))(x_10), 64)
+    x_30 = conv_block(layers.MaxPooling2D((2, 2))(x_20), 128)
+    x_40 = conv_block(layers.MaxPooling2D((2, 2))(x_30), 256)
+
+    # ========= DECODER NESTED (U-Net++ grid) =========
+    # Level j = 1
+    x_01 = conv_block(layers.concatenate([x_00, layers.UpSampling2D()(x_10)]), 16)
+    x_11 = conv_block(layers.concatenate([x_10, layers.UpSampling2D()(x_20)]), 32)
+    x_21 = conv_block(layers.concatenate([x_20, layers.UpSampling2D()(x_30)]), 64)
+    x_31 = conv_block(layers.concatenate([x_30, layers.UpSampling2D()(x_40)]), 128)
+
+    # Level j = 2
+    x_02 = conv_block(layers.concatenate([x_00, x_01, layers.UpSampling2D()(x_11)]), 16)
+    x_12 = conv_block(layers.concatenate([x_10, x_11, layers.UpSampling2D()(x_21)]), 32)
+    x_22 = conv_block(layers.concatenate([x_20, x_21, layers.UpSampling2D()(x_31)]), 64)
+
+    # Level j = 3
+    x_03 = conv_block(layers.concatenate([x_00, x_01, x_02, layers.UpSampling2D()(x_12)]), 16)
+    x_13 = conv_block(layers.concatenate([x_10, x_11, x_12, layers.UpSampling2D()(x_22)]), 32)
+
+    # Level j = 4 (final nested node)
+    x_04 = conv_block(layers.concatenate([x_00, x_01, x_02, x_03,
+                                          layers.UpSampling2D()(x_13)]), 16)
+
+    # ========= OUTPUTS =========
+    if deep_supervision:
+        o1 = layers.Conv2D(number_of_classes, 1, activation="softmax")(x_01)
+        o2 = layers.Conv2D(number_of_classes, 1, activation="softmax")(x_02)
+        o3 = layers.Conv2D(number_of_classes, 1, activation="softmax")(x_03)
+        o4 = layers.Conv2D(number_of_classes, 1, activation="softmax")(x_04)
+        outputs = layers.Average(name="deep_supervision_average")([o1, o2, o3, o4])
+    else:
+        outputs = layers.Conv2D(number_of_classes, 1, activation="softmax")(x_04)
+
+    model = Model(inputs=[inputs], outputs=[outputs])
+    model.model_name = "unet_plus_plus"
 
     return model
