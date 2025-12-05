@@ -1,24 +1,19 @@
 import os
 
 # Size of the chunk to train the model (e.g. 256 x 256)
-CHUNK_SIZE=256
-
+CHUNK_SIZE = os.environ.get('CHUNK_SIZE')
 # Threshold of class null > if 0.1 -> chunk with less than 10% of class null is cleared for model training
-THRESHOLD_0=0.1
-
+THRESHOLD_0 = os.environ.get('THRESHOLD_0')
 # Size of the batch to train the model
-BATCH_SIZE=32
-
+BATCH_SIZE = os.environ.get('BATCH_SIZE')
 # Reduction of number of classes from 15 to 7 : True or False, if True we work in 7 classes
-LBL_REDUCTION=False
+LBL_REDUCTION = os.environ.get('LBL_REDUCTION')
 
-# DATA_LOCATION dans .env est - gcs pour google cloud storage
-#                             - local
+
+# data in bucket or locally
 DATA_LOCATION = os.environ.get('DATA_LOCATION')
 
-# MODEL_TARGET dans .env est - mlflow
-#                            - gcs
-#                            - local
+# model save locally or in the bucket
 MODEL_TARGET = os.environ.get('MODEL_TARGET')
 BUCKET_NAME  = os.environ.get('BUCKET_NAME')
 

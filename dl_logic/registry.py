@@ -1,21 +1,20 @@
-# Here we save the results and the model
-# We also add a load function
+# function to save the results and parameters of the model
+# function to save the model
+# function to load the model
 
 # libraries
 from params import *
 
+import glob
 import pickle
 import os
 import time
+from colorama import Fore, Style
 
-from tensorflow import keras
+from keras import models
 from google.cloud import storage
 
-import mlflow
-from mlflow.tracking import MlflowClient
 
-# functions
-# metric Iou
 
 """
 dans le main il faut créer un dictionnaire pour params et metrics aves les valeurs qu'on veut sauvegarder
@@ -29,6 +28,8 @@ params = dict(
         reduction_mask = True
 )
 """
+
+# params and metrics
 def save_results(params: dict, metrics: dict):
 
     timestamp = time.strftime("%Y%m%d-%H%M%S")
@@ -65,6 +66,8 @@ def save_results(params: dict, metrics: dict):
 
         print(f"✅ Results uploaded to GCS bucket '{BUCKET_NAME}'")
 
+# ------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 def save_model(model: keras.Model = None) -> None:
     """
     Persist trained model locally on the hard drive at f"{LOCAL_REGISTRY_PATH}/models/{timestamp}.h5"
@@ -95,3 +98,58 @@ def save_model(model: keras.Model = None) -> None:
         return None
 
     return None
+
+# ------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+def load_model() -> models:
+    """
+    Return a saved model:
+    - locally (latest one in alphabetical order)
+    - or from GCS (most recent one) if MODEL_TARGET=='gcs'  --> for unit 02 only
+    - or from MLFLOW (by "stage") if MODEL_TARGET=='mlflow' --> for unit 03 only
+
+    Return None (but do not Raise) if no model is found
+
+    """
+
+    if MODEL_TARGET == "local":
+        print(Fore.BLUE + f"\nLoad latest model from local registry..." + Style.RESET_ALL)
+
+        # Get the latest model version name by the timestamp on disk
+        local_model_directory = os.path.join(LOCAL_REGISTRY_PATH, "models")
+        local_model_paths = glob.glob(f"{local_model_directory}/*")
+
+        if not local_model_paths:
+            return None
+
+        most_recent_model_path_on_disk = sorted(local_model_paths)[-1]
+
+        print(Fore.BLUE + f"\nLoad latest model from disk..." + Style.RESET_ALL)
+
+        latest_model = models.load_model(most_recent_model_path_on_disk)
+
+        print("✅ Model loaded from local disk")
+
+        return latest_model
+
+    elif MODEL_TARGET == "gcs":
+        # 🎁 We give you this piece of code as a gift. Please read it carefully! Add a breakpoint if needed!
+        print(Fore.BLUE + f"\nLoad latest model from GCS..." + Style.RESET_ALL)
+
+        client = storage.Client()
+        blobs = list(client.get_bucket(BUCKET_NAME).list_blobs(prefix="training-outputs/models/"))
+
+        try:
+            latest_blob = max(blobs, key=lambda x: x.updated)
+            latest_model_path_to_save = os.path.join(LOCAL_REGISTRY_PATH, latest_blob.name)
+            latest_blob.download_to_filename(latest_model_path_to_save)
+
+            latest_model = models.load_model(latest_model_path_to_save)
+
+            print("✅ Latest model downloaded from cloud storage")
+
+            return latest_model
+        except:
+            print(f"\n❌ No model found in GCS bucket {BUCKET_NAME}")
+
+            return None

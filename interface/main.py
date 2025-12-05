@@ -2,8 +2,8 @@
 
 from dl_logic.preprocessor import pairs_crea, images_to_chunks, slice_to_chunks, get_tf_dataset
 from dl_logic.model import initialize_model, compile_model, train_model, predict_model, plot_predict
-from dl_logic.model import initialize_unet_model, initialize_cnn_model
-from dl_logic.labels import reduce_mask, reduce_mask
+from dl_logic.model import initialize_unet_model, initialize_CNN_model
+from dl_logic.labels import reduce_mask, reduce_mask, REDUCED_7, flair_class_data
 from dl_logic.registry import save_results, save_model
 from PIL import Image
 import numpy as np
@@ -64,17 +64,20 @@ def preprocess():
 
 #       ==========================================
 #       ----------------- Train ------------------
-def train(model_category:str='unet',ds_train,ds_val):   # unet architecture or cnn
-    if model_category == 'unet':
-        model = initialize_unet_model((CHUNK_SIZE,CHUNK_SIZE,3), 7 is LBL_REDUCTION else 15)
-
-    if model_category == 'cnn':
-        model = initialize_cnn_model((CHUNK_SIZE, CHUNK_SIZE), 7 is LBL_REDUCTION else 15)
-
+def train(model_category:str='unet', ds_train, ds_val):   # unet architecture or cnn
     if LBL_REDUCTION:
         target_class_ID = REDUCED_7.keys
     else:
         target_class_ID = flair_class_data.keys
+    num_class = len(target_class_ID)
+
+    if model_category == 'unet':
+        model = initialize_unet_model((CHUNK_SIZE,CHUNK_SIZE,3), num_class)
+
+    if model_category == 'cnn':
+        model = initialize_CNN_model((CHUNK_SIZE, CHUNK_SIZE), num_class)
+
+
 
     model = compile_model(model, target_class_ID)
     history, model = train_model(model,
@@ -86,13 +89,14 @@ def train(model_category:str='unet',ds_train,ds_val):   # unet architecture or c
 
 
     IoU = np.max(history.history['mean_io_u'])
-    metrics = dict(IoU=IoU)
+    accuracy = np.max(history.history['val_accuracy'])
+    metrics = dict(IoU=IoU,accuracy=accuracy)
 
     model_name = model.model_name
     params = dict(context="train",
                   chunk_size=CHUNK_SIZE,
                   model=model_name,
-                  row_count=len(X_train)      # = nombre de chunk (ou de tuile), a verifier la syntaxe
+                  #row_count=len(X_train)      # = nombre de chunk (ou de tuile), a verifier la syntaxe
                   )
     # results saved on hard drive from registry.py
     save_results(params=params, metrics=metrics)

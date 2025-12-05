@@ -13,6 +13,7 @@ class Label:
 
 # CoSIA doc
 flair_class_data = {
+0  : ['other','#000000'],
 1   : ['building','#db0e9a'] ,
 2   : ['pervious surface','#938e7b'],
 3   : ['impervious surface','#f80c00'],
@@ -28,7 +29,6 @@ flair_class_data = {
 13  : ['agricultural land','#fff30d'],
 14  : ['plowed land','#e4df7c'],
 15  : ['vineyard','#660082'],
-16  : ['other','#000000']
 }
 
 # Reduced schema
