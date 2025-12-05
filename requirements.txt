@@ -31,3 +31,9 @@ pathlib
 geopandas
 rasterio
 keras
+
+# MLOPS
+fastapi
+uvicorn
+python-multipart
+Pillow
