@@ -12,7 +12,7 @@ class Label:
 
 
 # CoSIA gpkg > data extracted from our files
-FLAIR_CLASS_DATA = {
+fair_class_data = {
 0  : ['other','#000000'],
 1   : ['building','#db0e9a'] ,
 2   : ['pervious surface','#938e7b'],
