@@ -2,8 +2,8 @@
 
 from carte_territoire_package.dl_logic.preprocessor import get_tf_dataset
 from carte_territoire_package.dl_logic.model import initialize_cnn_model, initialize_unet_model, initialize_unet_plus_model
-from carte_territoire_package.dl_logic.model import compile_model, train_model, predict_model, plot_predict
-from carte_territoire_package.dl_logic.labels import REDUCED_7, FLAIR_CLASS_DATA
+from carte_territoire_package.dl_logic.model import compile_model, train_model, predict_model, build_model_metrics, plot_predict
+from carte_territoire_package.dl_logic.labels import REDUCED_7_NO_COLORS, FLAIR_CLASS_DATA_NO_COLORS
 from carte_territoire_package.dl_logic.registry import save_results, save_model
 from PIL import Image
 import numpy as np
@@ -57,17 +57,20 @@ from carte_territoire_package.params import *
 def preprocess():
     ds_train = get_tf_dataset('train/')
     ds_val = get_tf_dataset('val/')
+    ds_test = get_tf_dataset('test/')
 
     print("✅ preprocess() done \n")
-    return ds_train, ds_val
+    return ds_train, ds_val, ds_test
 
 #       ==========================================
 #       ----------------- Train ------------------
-def train(ds_train, ds_val, epochs: int=100, patience: int=5):
+def train(ds_train, ds_val, ds_test, epochs: int=100, patience: int=5):
     if LBL_REDUCTION == True:
-        target_class_ID = REDUCED_7.keys()
+        target_class_ID = REDUCED_7_NO_COLORS.keys()
+        target_class_values = list(REDUCED_7_NO_COLORS.values())
     else:
-        target_class_ID = FLAIR_CLASS_DATA.keys()
+        target_class_ID = FLAIR_CLASS_DATA_NO_COLORS.keys()
+        target_class_values = list(FLAIR_CLASS_DATA_NO_COLORS.values())
 
     num_class = len(target_class_ID)
 
@@ -94,8 +97,21 @@ def train(ds_train, ds_val, epochs: int=100, patience: int=5):
                           epochs=epochs,
                           patience=patience)
 
-    IoU = np.max(history.history['mean_io_u'])
-    metrics = dict(IoU=IoU)
+    IoU_train = np.max(history.history['mean_io_u'])
+    IoU_val = np.max(history.history['val_mean_io_u'])
+
+    cm_test, IoU_per_class_test, IoU_test = build_model_metrics(model=model,
+                                                dataset=ds_test,
+                                                num_classes=num_class,
+                                                class_names=target_class_values,
+                                                verbose=True)
+
+    metrics = dict(IoU_train=IoU_train,
+                   IoU_val=IoU_val,
+                   IoU_test=IoU_test,
+                   cm_test=cm_test,
+                   IoU_per_class_test=IoU_per_class_test
+                )
 
     model_name = model.model_name
 
@@ -104,9 +120,9 @@ def train(ds_train, ds_val, epochs: int=100, patience: int=5):
                   model=model_name,
                   #row_count=len(X_train)      # = nombre de chunk (ou de tuile), a verifier la syntaxe
                   )
-    # results saved on hard drive from registry.py
+    results saved on hard drive from registry.py
     save_results(params=params, metrics=metrics)
-    # model weight saved on gcs, can be saved locally too
+    model weight saved on gcs, can be saved locally too
     save_model(model=model)
 
     return history, model, metrics, params

@@ -10,7 +10,7 @@ import tensorflow as tf
 from carte_territoire_package.params import *
 from sklearn.metrics import confusion_matrix
 from carte_territoire_package.interface.utils import labels_to_rgb
-from carte_territoire_package.dl_logic.labels import flair_class_data
+from carte_territoire_package.dl_logic.labels import FLAIR_CLASS_DATA
 
 def initialize_cnn_model(input_shape: int = (CHUNK_SIZE, CHUNK_SIZE, 3),
                          number_of_classes: int = 7 if LBL_REDUCTION == True else 16):
@@ -103,7 +103,7 @@ def train_model(model, ds_train, ds_val, epochs=100, patience=5):
               callbacks=[es]
               )
 
-    return history, model
+    return history
 
 
 def predict_model(model, X_pred: tuple, input_shape: tuple = (CHUNK_SIZE, CHUNK_SIZE, 3)):
@@ -141,8 +141,8 @@ def predict_model(model, X_pred: tuple, input_shape: tuple = (CHUNK_SIZE, CHUNK_
 
 def plot_predict(X_pred, y_pred, y_label):
 
-    y_pred = labels_to_rgb(y_pred, flair_class_data)
-    y_label = labels_to_rgb(y_label, flair_class_data)
+    y_pred = labels_to_rgb(y_pred, FLAIR_CLASS_DATA)
+    y_label = labels_to_rgb(y_label, FLAIR_CLASS_DATA)
 
     fig, ((ax0, ax1, ax2), (ax3, ax4, ax5), (ax6, ax7, ax8)) = plt.subplots(3, 3, figsize=(18,18))
 
@@ -428,7 +428,7 @@ def initialize_unet_plus_model(
     if deep_supervision:
         o1 = layers.Conv2D(number_of_classes, 1, activation="softmax")(x_01)
         o2 = layers.Conv2D(number_of_classes, 1, activation="softmax")(x_02)
-        o3 = layers.Conv2D(number_of_classes, 1, activation="softmax"](x_03)
+        o3 = layers.Conv2D(number_of_classes, 1, activation="softmax")(x_03)
         o4 = layers.Conv2D(number_of_classes, 1, activation="softmax")(x_04)
         outputs = layers.Average()([o1, o2, o3, o4])
     else:
