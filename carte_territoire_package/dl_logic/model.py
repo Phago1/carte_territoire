@@ -9,6 +9,8 @@ import numpy as np
 import tensorflow as tf
 from carte_territoire_package.params import *
 from sklearn.metrics import confusion_matrix
+from carte_territoire_package.interface.utils import labels_to_rgb
+from carte_territoire_package.dl_logic.labels import flair_class_data
 
 def initialize_cnn_model(input_shape: int = (CHUNK_SIZE, CHUNK_SIZE, 3),
                          number_of_classes: int = 7 if LBL_REDUCTION == True else 16):
@@ -138,6 +140,9 @@ def predict_model(model, X_pred: tuple, input_shape: tuple = (CHUNK_SIZE, CHUNK_
 
 
 def plot_predict(X_pred, y_pred, y_label):
+
+    y_pred = labels_to_rgb(y_pred, flair_class_data)
+    y_label = labels_to_rgb(y_label, flair_class_data)
 
     fig, ((ax0, ax1, ax2), (ax3, ax4, ax5), (ax6, ax7, ax8)) = plt.subplots(3, 3, figsize=(18,18))
 
