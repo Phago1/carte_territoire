@@ -1,13 +1,13 @@
 # WORK IN PROGRESS
 
-from dl_logic.preprocessor import pairs_crea, images_to_chunks, slice_to_chunks, get_tf_dataset
-from dl_logic.model import initialize_model, compile_model, train_model, predict_model, plot_predict
-from dl_logic.model import initialize_unet_model, initialize_CNN_model
-from dl_logic.labels import reduce_mask, reduce_mask, REDUCED_7, flair_class_data
-from dl_logic.registry import save_results, save_model
+from carte_territoire_package.dl_logic.preprocessor import get_tf_dataset
+from carte_territoire_package.dl_logic.model import initialize_cnn_model, initialize_unet_model, initialize_unet_plus_model
+from carte_territoire_package.dl_logic.model import compile_model, train_model, predict_model, plot_predict
+from carte_territoire_package.dl_logic.labels import REDUCED_7, FLAIR_CLASS_DATA
+from carte_territoire_package.dl_logic.registry import save_results, save_model
 from PIL import Image
 import numpy as np
-from params import *
+from carte_territoire_package.params import *
 
 
 # ## Retrieve List of tuples Tile / Label
@@ -54,7 +54,6 @@ from params import *
 
 #       ==========================================
 #       --------------- Preprocess ---------------
-#       BATCH_SIZE = ????
 def preprocess():
     ds_train = get_tf_dataset('train/')
     ds_val = get_tf_dataset('val/')
@@ -64,35 +63,42 @@ def preprocess():
 
 #       ==========================================
 #       ----------------- Train ------------------
-def train(model_category:str='unet', ds_train, ds_val):   # unet architecture or cnn
-    if LBL_REDUCTION:
-        target_class_ID = REDUCED_7.keys
+def train(ds_train, ds_val, epochs: int=100, patience: int=5):
+    if LBL_REDUCTION == True:
+        target_class_ID = REDUCED_7.keys()
     else:
-        target_class_ID = flair_class_data.keys
+        target_class_ID = FLAIR_CLASS_DATA.keys()
+
     num_class = len(target_class_ID)
 
-    if model_category == 'unet':
-        model = initialize_unet_model((CHUNK_SIZE,CHUNK_SIZE,3), num_class)
+    if MODEL_ARCH == 'cnn':
+        model = initialize_cnn_model(number_of_classes=num_class)
+        print('Model architecture: CNN')
 
-    if model_category == 'cnn':
-        model = initialize_CNN_model((CHUNK_SIZE, CHUNK_SIZE), num_class)
+    elif MODEL_ARCH == 'unet':
+        model = initialize_unet_model(number_of_classes=num_class)
+        print('Model architecture: UNET')
 
+    elif MODEL_ARCH == 'unet_plus':
+        model = initialize_unet_plus_model(number_of_classes=num_class)
+        print('Model architecture: UNET_PLUS')
 
+    else:
+        print('❌ No model defined')
 
-    model = compile_model(model, target_class_ID)
-    history, model = train_model(model,
-                                    ds_train,
-                                    ds_val,
-                                    epochs=30,
-                                    batch_size = BATCH_SIZE, # BATCH_SIZE est une var d'environnement
-                                    patience=3)
+    model = compile_model(model=model, number_of_classes=num_class)
 
+    history = train_model(model,
+                          ds_train,
+                          ds_val,
+                          epochs=epochs,
+                          patience=patience)
 
     IoU = np.max(history.history['mean_io_u'])
-    accuracy = np.max(history.history['val_accuracy'])
-    metrics = dict(IoU=IoU,accuracy=accuracy)
+    metrics = dict(IoU=IoU)
 
     model_name = model.model_name
+
     params = dict(context="train",
                   chunk_size=CHUNK_SIZE,
                   model=model_name,
@@ -103,4 +109,4 @@ def train(model_category:str='unet', ds_train, ds_val):   # unet architecture or
     # model weight saved on gcs, can be saved locally too
     save_model(model=model)
 
-    return IoU
+    return history, model, metrics, params

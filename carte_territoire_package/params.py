@@ -1,5 +1,7 @@
 import os
 
+# Architecture of the model : cnn, unet, or unet_plus
+MODEL_ARCH = os.environ.get('MODEL_ARCH')
 # Size of the chunk to train the model (e.g. 256 x 256)
 CHUNK_SIZE = int(os.environ.get('CHUNK_SIZE'))
 # Threshold of class null > if 0.1 -> chunk with less than 10% of class null is cleared for model training

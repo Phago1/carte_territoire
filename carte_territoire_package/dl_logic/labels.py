@@ -12,7 +12,7 @@ class Label:
 
 
 # CoSIA gpkg > data extracted from our files
-flair_class_data = {
+FLAIR_CLASS_DATA = {
 0  : ['other','#000000'],
 1   : ['building','#db0e9a'] ,
 2   : ['pervious surface','#938e7b'],
@@ -48,6 +48,7 @@ class_names_extract = ['other',
   'plowed land',
   'greenhouse']
 
+# CoSIA doc
 # flair_class_data = {
 # 0  : ['other','#000000'],
 # 1   : ['building','#db0e9a'] ,
@@ -258,9 +259,9 @@ def build_table(mapping, max_src=16, default=0):
         lut[old] = new
     return lut
 
-LUT_16_TO_7 = build_table(COSIA16_TO_REDUCED7)
 
 def reduce_mask(mask):
+    LUT_16_TO_7 = build_table(COSIA16_TO_REDUCED7)
     return LUT_16_TO_7[mask]
 
 
