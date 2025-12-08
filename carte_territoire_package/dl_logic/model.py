@@ -87,7 +87,7 @@ def compile_model(model,
     return model
 
 
-def train_model(model, ds_train, ds_val, epochs=100, batch_size = BATCH_SIZE, patience=5):
+def train_model(model, ds_train, ds_val, epochs=100, patience=5):
     """
     train model from train and val tensorfflow datasets
     """
@@ -97,7 +97,6 @@ def train_model(model, ds_train, ds_val, epochs=100, batch_size = BATCH_SIZE, pa
     history = model.fit(ds_train,
               validation_data=ds_val,
               epochs=epochs,
-              batch_size=batch_size,
               callbacks=[es]
               )
 
@@ -283,7 +282,7 @@ def initialize_unet_plus_model(input_shape: tuple = (CHUNK_SIZE, CHUNK_SIZE, 3),
     inputs = Input(shape=input_shape)
 
     # ========= ENCODER =========
-    x_00 = conv_block(inputs, 16)
+    x_00 = conv_block(inputs, number_of_classes)
     x_10 = conv_block(layers.MaxPooling2D((2, 2))(x_00), 32)
     x_20 = conv_block(layers.MaxPooling2D((2, 2))(x_10), 64)
     x_30 = conv_block(layers.MaxPooling2D((2, 2))(x_20), 128)
@@ -323,8 +322,3 @@ def initialize_unet_plus_model(input_shape: tuple = (CHUNK_SIZE, CHUNK_SIZE, 3),
     model.model_name = "unet_plus_plus"
 
     return model
-
-
-
-
-# test
