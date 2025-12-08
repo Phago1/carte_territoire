@@ -184,7 +184,8 @@ def chunk_generator(prefix:str):
 def get_tf_dataset(
     prefix: str,
     batch_size: int = BATCH_SIZE,
-    shuffle_buffer: int = 1024) -> tf.data.Dataset:
+    shuffle_buffer: int = 1024,
+    cache: bool = CACHE) -> tf.data.Dataset:
     """
     Build a tf.data.Dataset from tiles under the given prefix ('train/' or 'val/').
 
@@ -205,5 +206,11 @@ def get_tf_dataset(
         )
     )
 
-    ds = ds.shuffle(shuffle_buffer).batch(batch_size).prefetch(tf.data.AUTOTUNE)
+    if cache == False:
+        ds = ds.shuffle(shuffle_buffer).batch(batch_size).prefetch(tf.data.AUTOTUNE)
+        print("Dataset creation IS NOT USING CACHE MEMORY. Recommended if RAM<32Go")
+    else:
+        ds = ds.cache().shuffle(shuffle_buffer).batch(batch_size).prefetch(tf.data.AUTOTUNE)
+        print("Dataset creation IS USING CACHE MEMORY. To use only if 32Go<RAM")
+
     return ds

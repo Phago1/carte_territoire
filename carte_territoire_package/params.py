@@ -8,6 +8,8 @@ THRESHOLD_0 = float(os.environ.get('THRESHOLD_0'))
 BATCH_SIZE = int(os.environ.get('BATCH_SIZE'))
 # Reduction of number of classes from 15 to 7 : True or False, if True we work in 7 classes
 LBL_REDUCTION = os.environ.get('LBL_REDUCTION')
+# Stores patches of (CHUNK_SIZE*CHUNK_SIZE) in cache : True only if 32Go<RAM
+CACHE = os.environ.get('CACHE')
 
 
 # data in bucket or locally
