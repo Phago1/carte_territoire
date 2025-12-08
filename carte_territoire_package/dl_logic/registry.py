@@ -81,10 +81,10 @@ def save_model(model: keras.Model = None) -> None:
     """
 
     timestamp = time.strftime("%Y%m%d-%H%M%S")
+    model_path = os.path.join(LOCAL_REGISTRY_PATH, "models", f"{timestamp}.h5")
 
     # Save model locally
     if LOCAL_SAVE == 'yes':
-        model_path = os.path.join(LOCAL_REGISTRY_PATH, "models", f"{timestamp}.h5")
         model.save(model_path)
         # Ensure folder exists
         os.makedirs(os.path.dirname(model_path), exist_ok=True)
