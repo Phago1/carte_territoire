@@ -9,7 +9,8 @@ import numpy as np
 import tensorflow as tf
 from carte_territoire_package.params import *
 
-def initialize_CNN_model(input_shape: tuple, number_of_classes: int):
+def initialize_cnn_model(input_shape: int = (CHUNK_SIZE, CHUNK_SIZE, 3),
+                         number_of_classes: int = 7 if LBL_REDUCTION == True else 16):
     """
     input_shape usualy like X_train.shape[1:]
     repoduced from state-of-the-art recommandation:
@@ -19,8 +20,6 @@ def initialize_CNN_model(input_shape: tuple, number_of_classes: int):
     model = Sequential()
 
     model.add(Input(shape=input_shape))
-
-    # model.add(layers.Rescaling(1.0/255)) #to remove when rescale included in pipe
 
     model.add(layers.Conv2D(64, 3, strides=2, padding='same', activation='relu'))
     model.add(layers.Conv2D(64, 3, padding='same', activation='relu'))
@@ -43,7 +42,8 @@ def initialize_CNN_model(input_shape: tuple, number_of_classes: int):
     return model
 
 
-def compile_model(model, number_of_classes: int):
+def compile_model(model,
+                  number_of_classes: int = 7 if LBL_REDUCTION==True else 16):
     """
     target_class_ids must contain the ids of the classes to be classified.
     It is used by keras.metrics to compute the IoU for each class in this list.
@@ -66,14 +66,14 @@ def compile_model(model, number_of_classes: int):
 
         return total_loss
 
-    lr_schedule = schedules.ExponentialDecay(
-        initial_learning_rate=1e-3,
-        decay_steps=10000,
-        decay_rate=0.9,
-        staircase=True
-        )
+    # lr_schedule = schedules.ExponentialDecay(
+    #     initial_learning_rate=1e-3,
+    #     decay_steps=10000,
+    #     decay_rate=0.9,
+    #     staircase=True
+    #     )
 
-    optimizer = Adam(learning_rate=lr_schedule)
+    optimizer = Adam(learning_rate=0.001)
 
     IoU = metrics.MeanIoU(num_classes=number_of_classes, sparse_y_true=True, sparse_y_pred=False)
 
@@ -87,7 +87,7 @@ def compile_model(model, number_of_classes: int):
     return model
 
 
-def train_model(model, ds_train, ds_val, epochs=30, batch_size = BATCH_SIZE, patience=3):
+def train_model(model, ds_train, ds_val, epochs=100, batch_size = BATCH_SIZE, patience=5):
     """
     train model from train and val tensorfflow datasets
     """
@@ -104,7 +104,7 @@ def train_model(model, ds_train, ds_val, epochs=30, batch_size = BATCH_SIZE, pat
     return history, model
 
 
-def predict_model(model, X_pred, input_shape):
+def predict_model(model, X_pred: tuple, input_shape: tuple = (CHUNK_SIZE, CHUNK_SIZE, 3)):
 
     """
     .predict expect a shape==(batch_size, height_trained_model, width_trained_model, 3)
@@ -186,14 +186,14 @@ def plot_predict(X_pred, y_pred, y_label):
     plt.show()
 
 
-def initialize_unet_model(input_shape: tuple, number_of_classes: int):
+def initialize_unet_model(input_shape: tuple = (CHUNK_SIZE, CHUNK_SIZE, 3),
+                          number_of_classes: int = 7 if LBL_REDUCTION==True else 16):
     """
     taken from: https://github.com/ChinmayParanjape/Satellite-imagery-segmentation-using-U-NET/blob/main/SEGMENTATION_MODEL_AND%C2%A0_PREPROCESSING.ipynb
 
     """
 
     inputs = Input(shape=input_shape)
-    # inputs = layers.Rescaling(1.0/255)(inputs) #to remove when rescale included in pipe
 
     s = inputs
 
@@ -267,8 +267,8 @@ def conv_block(inputs, num_filters):
     return x
 
 
-def initialize_unet_plus_model(input_shape: tuple,
-                               number_of_classes: int,
+def initialize_unet_plus_model(input_shape: tuple = (CHUNK_SIZE, CHUNK_SIZE, 3),
+                               number_of_classes: int = 7 if LBL_REDUCTION==True else 16,
                                deep_supervision: bool = False):
     """
     U-Net++ model.
@@ -323,3 +323,8 @@ def initialize_unet_plus_model(input_shape: tuple,
     model.model_name = "unet_plus_plus"
 
     return model
+
+
+
+
+# test
