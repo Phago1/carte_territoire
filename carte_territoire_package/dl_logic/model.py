@@ -428,7 +428,7 @@ def initialize_unet_plus_model(
     if deep_supervision:
         o1 = layers.Conv2D(number_of_classes, 1, activation="softmax")(x_01)
         o2 = layers.Conv2D(number_of_classes, 1, activation="softmax")(x_02)
-        o3 = layers.Conv2D(number_of_classes, 1, activation="softmax"](x_03)
+        o3 = layers.Conv2D(number_of_classes, 1, activation="softmax")(x_03)
         o4 = layers.Conv2D(number_of_classes, 1, activation="softmax")(x_04)
         outputs = layers.Average()([o1, o2, o3, o4])
     else:
