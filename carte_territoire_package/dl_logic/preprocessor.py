@@ -164,9 +164,9 @@ def chunk_generator(prefix:str):
       - yields each chunk one by one (image_chunk, label_chunk).
     """
     ortho_paths, label_paths = pairs_crea(prefix=prefix)
-    if prefix == "train/":   # TO REMOVE WHEN GOING FULL SCALE
-        ortho_paths = ortho_paths[0:2]
-        label_paths = label_paths[0:2]
+    # if prefix == "train/":   # TO REMOVE WHEN GOING FULL SCALE
+    #     ortho_paths = ortho_paths[0:2]
+    #     label_paths = label_paths[0:2]
 
     for ortho_path, label_path in zip(ortho_paths, label_paths):
         with rasterio.open(ortho_path) as src_o:
