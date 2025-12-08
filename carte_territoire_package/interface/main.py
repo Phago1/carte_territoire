@@ -119,9 +119,11 @@ def train(ds_train, ds_val, ds_test, epochs: int=100, patience: int=5):
                   model=model_name,
                   #row_count=len(X_train)      # = nombre de chunk (ou de tuile), a verifier la syntaxe
                   )
-    # results saved on hard drive from registry.py
-    # save_results(params=params, metrics=metrics)
-    # model weight saved on gcs, can be saved locally too
-    # save_model(model=model)
+
+    save_results(params=params, metrics=metrics)
+    # print('results saved on hard drive from registry.py')
+
+    save_model(model=model)
+    # print('model weight saved on gcs, can be saved locally too')
 
     return history, model, metrics, params
