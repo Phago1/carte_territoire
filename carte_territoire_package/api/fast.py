@@ -10,10 +10,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image
 from keras import models
 from carte_territoire_package.dl_logic.model import predict_model
+from carte_territoire_package.interface.utils import labels_to_rgb
+from carte_territoire_package.dl_logic.labels import flair_class_data
 
 app = FastAPI()
-
-OPTION = 'Model' # ou 'Model' if real launch
 
 # Allowing all middleware is optional, but good practice for dev purposes
 app.add_middleware(
@@ -77,10 +77,7 @@ async def upload_and_process_image(file: UploadFile = File(...)):
     num_chunks_cols = w_fit // CHUNK_SIZE
 
     # Initialize the output array with the final desired shape (H_fit, W_fit)
-    if OPTION == 'Test':
-        reassembled_array = np.zeros((h_fit, w_fit, 1), dtype=np.int64)
-    elif OPTION == 'Model':
-        reassembled_array = np.zeros((h_fit, w_fit), dtype=np.int64)
+    reassembled_array = np.zeros((h_fit, w_fit), dtype=np.int64)
 
     # 2. Iterate through rows and columns of chunks
     for i in range(num_chunks_rows):
@@ -95,22 +92,16 @@ async def upload_and_process_image(file: UploadFile = File(...)):
             current_chunk = cropped_array[row_start:row_end, col_start:col_end, :]
 
             # 4. Process: Apply the external function
-            if OPTION == 'Test':
-                processed_chunk = current_chunk[:, :, 0]
-            elif OPTION == 'Model':
-                processed_chunk = predict_model(app.state.model, current_chunk, (CHUNK_SIZE, CHUNK_SIZE, 3))
+            processed_chunk = predict_model(app.state.model, current_chunk, (CHUNK_SIZE, CHUNK_SIZE, 3))
 
             # 5. Recombine: Place the result into the correct slice of the output array
             # The output shape is (CHUNK_SIZE, CHUNK_SIZE)
-            if OPTION == 'Test':
-                reassembled_array[row_start:row_end, col_start:col_end, 0] = processed_chunk
-            elif OPTION == 'Model':
-                reassembled_array[row_start:row_end, col_start:col_end] = processed_chunk
+            reassembled_array[row_start:row_end, col_start:col_end] = processed_chunk
 
     # --------------------------------------------------------------------------
     # --------------------------------------------------------------------------
 
-    y_test = reassembled_array.astype(np.int8)
+    y_test = labels_to_rgb(reassembled_array, flair_class_data)
     label_pred = Image.fromarray(y_test)
 
     output_buffer = io.BytesIO()
