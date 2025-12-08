@@ -11,25 +11,62 @@ class Label:
     color: str
 
 
-# CoSIA doc
+# CoSIA gpkg > data extracted from our files
 FLAIR_CLASS_DATA = {
-0   : ['other','#000000'],
+0  : ['other','#000000'],
 1   : ['building','#db0e9a'] ,
 2   : ['pervious surface','#938e7b'],
 3   : ['impervious surface','#f80c00'],
 4   : ['swimming_pool','#3de6eb'],
-5   : ['greenhouse','#9999ff'],
-6   : ['bare_soil','#a97101'],
-7   : ['water','#1553ae'],
-8   : ['snow','#ffffff'],
-9   : ['coniferous','#194a26'],
-10  : ['deciduous','#46e483'],
-11  : ['brushwood','#f3a60d'],
+5   : ['bare_soil','#a97101'],
+6   : ['water','#1553ae'],
+7   : ['snow','#ffffff'],
+8   : ['coniferous','#194a26'],
+9  : ['deciduous','#46e483'],
+10  : ['brushwood','#f3a60d'],
+11  : ['vineyard','#660082'],
 12  : ['herbaceous vegetation','#55ff00'],
 13  : ['agricultural land','#fff30d'],
 14  : ['plowed land','#e4df7c'],
-15  : ['vineyard','#660082'],
+15  : ['greenhouse','#9999ff'],
 }
+
+class_names_extract = ['other',
+  'building',
+  'pervious surface',
+  'impervious surface',
+  'swimming_pool',
+  'bare_soil',
+  'water',
+  'snow',
+  'coniferous',
+  'deciduous',
+  'brushwood',
+  'vineyard',
+  'herbaceous vegetation',
+  'agricultural land',
+  'plowed land',
+  'greenhouse']
+
+# CoSIA doc
+# flair_class_data = {
+# 0  : ['other','#000000'],
+# 1   : ['building','#db0e9a'] ,
+# 2   : ['pervious surface','#938e7b'],
+# 3   : ['impervious surface','#f80c00'],
+# 4   : ['swimming_pool','#3de6eb'],
+# 5   : ['greenhouse','#9999ff'],
+# 6   : ['bare_soil','#a97101'],
+# 7   : ['water','#1553ae'],
+# 8   : ['snow','#ffffff'],
+# 9   : ['coniferous','#194a26'],
+# 10  : ['deciduous','#46e483'],
+# 11  : ['brushwood','#f3a60d'],
+# 12  : ['herbaceous vegetation','#55ff00'],
+# 13  : ['agricultural land','#fff30d'],
+# 14  : ['plowed land','#e4df7c'],
+# 15  : ['vineyard','#660082'],
+# }
 
 # Reduced schema
 """

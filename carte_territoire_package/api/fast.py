@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
-# from params import *
+from pathlib import Path
+from carte_territoire_package.params import *
 
 # from dl_logic.registry import load_model # A VENIR
 import io
@@ -9,8 +10,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image
 from keras import models
 from carte_territoire_package.dl_logic.model import predict_model
+from carte_territoire_package.interface.utils import labels_to_rgb
+from carte_territoire_package.dl_logic.labels import flair_class_data
 
-CHUNK_SIZE=256
 app = FastAPI()
 
 # Allowing all middleware is optional, but good practice for dev purposes
@@ -25,17 +27,19 @@ app.add_middleware(
 ## 💡 Preload the model to accelerate the predictions
 ## and then store the model in an `app.state.model` global variable, accessible across all routes!
 ## This will prove very useful for the Demo Day
-app.state.model = models.load_model("../trained_models/my_model_0512.keras", compile=False)
+current_dir = Path(__file__).parent
+path_to_model_dir = current_dir.parent / 'trained_models'
+model_path = path_to_model_dir / 'my_model_0512.keras'
+app.state.model = models.load_model(model_path, compile=False)
 
 @app.get("/")
 def root():
-    # $CHA_BEGIN
     return dict(greeting="Hello")
-    # $CHA_END
+
 
 @app.get("/predict")
-def predict(X_test:str):      # IMAGE OR ARRAY as an input ?
-    output = X_test + " bien reçu"
+def predict(test:str):
+    output = test + " bien reçu"
     return output
 
 @app.post("/upload-and-process/")
@@ -50,12 +54,59 @@ async def upload_and_process_image(file: UploadFile = File(...)):
     # 2. Open the image from the bytes content and convert to array
     image = Image.open(io.BytesIO(file_content))
     array = np.array(image)
-    array_resize = array[:256,:256,:]
-    array_pred = predict_model(app.state.model, array_resize, (CHUNK_SIZE, CHUNK_SIZE, 3))
-    label_pred = Image.fromarray(array_pred)
+    X_test = array[:,:,:3]
+
+    # --------------------------------------------------------------------------
+    # Splitting the input array (H, W, 3) into smaller chunks, processesing them
+    # reassembling the results into a single 2D array (H_fit, W_fit),
+    # where H_fit and W_fit are the largest dimensions divisible by CHUNK_SIZE.
+    # --------------------------------------------------------------------------
+
+    # 1. Determine the dimensions that fit the chunk size
+    size_a, size_b, num_channels = X_test.shape
+
+    # Calculate the largest dimensions that are perfectly divisible by chunk_size
+    h_fit = (size_a // CHUNK_SIZE) * CHUNK_SIZE
+    w_fit = (size_b // CHUNK_SIZE) * CHUNK_SIZE
+
+    # Crop the array to the top-left section that fits the chunk grid
+    # This addresses the requirement: "keep only the top - left of the input image"
+    cropped_array = X_test[:h_fit, :w_fit, :]
+
+    num_chunks_rows = h_fit // CHUNK_SIZE
+    num_chunks_cols = w_fit // CHUNK_SIZE
+
+    # Initialize the output array with the final desired shape (H_fit, W_fit)
+    reassembled_array = np.zeros((h_fit, w_fit), dtype=np.int64)
+
+    # 2. Iterate through rows and columns of chunks
+    for i in range(num_chunks_rows):
+        for j in range(num_chunks_cols):
+            # Calculate pixel indices for the current chunk
+            row_start = i * CHUNK_SIZE
+            row_end = row_start + CHUNK_SIZE
+            col_start = j * CHUNK_SIZE
+            col_end = col_start + CHUNK_SIZE
+
+            # 3. Split: Extract the current chunk (shape: CHUNK_SIZE, CHUNK_SIZE, 3)
+            current_chunk = cropped_array[row_start:row_end, col_start:col_end, :]
+
+            # 4. Process: Apply the external function
+            processed_chunk = predict_model(app.state.model, current_chunk, (CHUNK_SIZE, CHUNK_SIZE, 3))
+
+            # 5. Recombine: Place the result into the correct slice of the output array
+            # The output shape is (CHUNK_SIZE, CHUNK_SIZE)
+            reassembled_array[row_start:row_end, col_start:col_end] = processed_chunk
+
+    # --------------------------------------------------------------------------
+    # --------------------------------------------------------------------------
+
+    y_test = labels_to_rgb(reassembled_array, flair_class_data)
+    label_pred = Image.fromarray(y_test)
 
     output_buffer = io.BytesIO()
-    label_pred.save(output_buffer, format="JPEG") # Use JPEG, PNG, etc.
+
+    label_pred.save(output_buffer, format="PNG")
     processed_image_bytes = output_buffer.getvalue()
 
-    return Response(content=processed_image_bytes, media_type="image/jpeg")
+    return Response(content=processed_image_bytes, media_type="image/PNG")

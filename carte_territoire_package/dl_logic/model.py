@@ -8,6 +8,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 from carte_territoire_package.params import *
+from sklearn.metrics import confusion_matrix
+from carte_territoire_package.interface.utils import labels_to_rgb
+from carte_territoire_package.dl_logic.labels import flair_class_data
 
 def initialize_cnn_model(input_shape: int = (CHUNK_SIZE, CHUNK_SIZE, 3),
                          number_of_classes: int = 7 if LBL_REDUCTION == True else 16):
@@ -138,6 +141,9 @@ def predict_model(model, X_pred: tuple, input_shape: tuple = (CHUNK_SIZE, CHUNK_
 
 def plot_predict(X_pred, y_pred, y_label):
 
+    y_pred = labels_to_rgb(y_pred, flair_class_data)
+    y_label = labels_to_rgb(y_label, flair_class_data)
+
     fig, ((ax0, ax1, ax2), (ax3, ax4, ax5), (ax6, ax7, ax8)) = plt.subplots(3, 3, figsize=(18,18))
 
     # Compare Ortho to Label
@@ -183,6 +189,87 @@ def plot_predict(X_pred, y_pred, y_label):
     ax8.axis("off")
 
     plt.show()
+
+
+def build_model_metrics(model, dataset, num_classes, class_names=None, verbose=True):
+    """
+    Computes evaluation metrics for a semantic segmentation model.
+
+    This function processes an entire dataset to:
+      - generate predictions for all images,
+      - build a global confusion matrix (num_classes x num_classes),
+      - compute the Intersection over Union (IoU) for each class,
+      - compute the overall mean IoU (mIoU).
+
+    Parameters
+    ----------
+    model : tf.keras.Model
+        The trained segmentation model used to generate predictions.
+
+    dataset : built with get_tf_dataset for test
+
+    num_classes : int
+        Number of segmentation classes.
+
+    class_names : list of str, optional
+        Human-readable class names used when printing results.
+
+    verbose : bool
+        If True, prints the confusion matrix and per-class IoUs.
+
+    Returns
+    -------
+    cm : ndarray (num_classes x num_classes)
+        The confusion matrix built over all pixels of the dataset.
+
+    iou_per_class : ndarray (num_classes,)
+        IoU score for each class.
+
+    miou : float
+        The mean IoU computed over all classes (ignoring NaNs).
+    """
+    y_true_all = []
+    y_pred_all = []
+
+    for images, labels in dataset:
+        # 1. Predictions from test_set
+        preds = model.predict(images, verbose=0)        # (B, H, W, C)
+        y_pred = np.argmax(preds, axis=-1)              # (B, H, W)
+
+        # 2. Convert labels into np array
+        y_true = labels.numpy()                         # (B, H, W)
+
+        # 3. Flatten arrays to produce one big array
+        y_true_all.append(y_true.ravel())
+        y_pred_all.append(y_pred.ravel())
+
+    y_true_all = np.concatenate(y_true_all)
+    y_pred_all = np.concatenate(y_pred_all)
+
+    # 4️⃣ Confusion matrix
+    cm = confusion_matrix(y_true_all, y_pred_all, labels=range(num_classes))
+
+    # 5️⃣ IoU per class
+    tp = np.diag(cm).astype(np.float64)
+    fn = cm.sum(axis=1) - tp    # For a class i: all true pixels of class i that were misclassified elsewhere
+                                # → sum of row i, minus the true positives.
+    fp = cm.sum(axis=0) - tp    # For a class i: all pixels predicted as class i that actually belong to another class
+                                # → sum of column i, minus the true positives.
+    union = tp + fp + fn
+    iou_per_class = np.where(union > 0, tp / union, np.nan)
+    miou = np.nanmean(iou_per_class)
+
+    if verbose:
+        print("=== Confusion matrix (counts) ===")
+        print(cm)
+
+        print("\n=== IoU per class ===")
+        for c in range(num_classes):
+            name = class_names[c] if class_names is not None else f"class {c}"
+            print(f"{name:20s}: IoU = {iou_per_class[c]:.3f}")
+        print(f"\n➡ mIoU globale : {miou:.3f}")
+
+    return cm, iou_per_class, miou
 
 
 def initialize_unet_model(input_shape: tuple = (CHUNK_SIZE, CHUNK_SIZE, 3),
