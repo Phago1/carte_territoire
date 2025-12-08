@@ -336,21 +336,30 @@ def initialize_unet_model(input_shape: tuple = (CHUNK_SIZE, CHUNK_SIZE, 3),
     return model
 
 
-def conv_block(inputs, num_filters):
-    x = tf.keras.Sequential([
-        layers.Conv2D(num_filters, 3, padding='same'),
-        layers.BatchNormalization(),
-        layers.Activation('relu'),
-        layers.Conv2D(num_filters, 3, padding='same'),
-        layers.BatchNormalization(),
-        layers.Activation('relu'),
-    ])(inputs)
+
+# ======== Convolution Block UNet++ ========
+def conv_block(x, filters):
+    """
+    Standard conv block for UNet/UNet++:
+    Conv2D -> BN -> ReLU -> Conv2D -> BN -> ReLU
+    """
+    x = layers.Conv2D(filters, 3, padding='same', use_bias=False)(x)
+    x = layers.BatchNormalization()(x)
+    x = layers.ReLU()(x)
+
+    x = layers.Conv2D(filters, 3, padding='same', use_bias=False)(x)
+    x = layers.BatchNormalization()(x)
+    x = layers.ReLU()(x)
     return x
 
 
-def initialize_unet_plus_model(input_shape: tuple = (CHUNK_SIZE, CHUNK_SIZE, 3),
-                               number_of_classes: int = 7 if LBL_REDUCTION==True else 16,
-                               deep_supervision: bool = False):
+# ======== UNet++ Architecture ========
+def initialize_unet_plus_model(
+        input_shape=(256, 256, 3),
+        number_of_classes=16,
+        deep_supervision=False,
+        base_filters=32
+    ):
     """
     U-Net++ model.
 
@@ -364,43 +373,61 @@ def initialize_unet_plus_model(input_shape: tuple = (CHUNK_SIZE, CHUNK_SIZE, 3),
     inputs = Input(shape=input_shape)
 
     # ========= ENCODER =========
-    x_00 = conv_block(inputs, number_of_classes)
-    x_10 = conv_block(layers.MaxPooling2D((2, 2))(x_00), 32)
-    x_20 = conv_block(layers.MaxPooling2D((2, 2))(x_10), 64)
-    x_30 = conv_block(layers.MaxPooling2D((2, 2))(x_20), 128)
-    x_40 = conv_block(layers.MaxPooling2D((2, 2))(x_30), 256)
+    x_00 = conv_block(inputs, base_filters)            # 32
+    x_10 = conv_block(layers.MaxPooling2D((2, 2))(x_00), base_filters * 2)   # 64
+    x_20 = conv_block(layers.MaxPooling2D((2, 2))(x_10), base_filters * 4)   # 128
+    x_30 = conv_block(layers.MaxPooling2D((2, 2))(x_20), base_filters * 8)   # 256
+    x_40 = conv_block(layers.MaxPooling2D((2, 2))(x_30), base_filters * 16)  # 512
 
-    # ========= DECODER NESTED (U-Net++ grid) =========
+    # ========= DECODER (nested) =========
     # Level j = 1
-    x_01 = conv_block(layers.concatenate([x_00, layers.UpSampling2D()(x_10)]), 16)
-    x_11 = conv_block(layers.concatenate([x_10, layers.UpSampling2D()(x_20)]), 32)
-    x_21 = conv_block(layers.concatenate([x_20, layers.UpSampling2D()(x_30)]), 64)
-    x_31 = conv_block(layers.concatenate([x_30, layers.UpSampling2D()(x_40)]), 128)
+    x_01 = conv_block(layers.concatenate([
+        x_00, layers.UpSampling2D((2, 2))(x_10)
+    ]), base_filters)
+    x_11 = conv_block(layers.concatenate([
+        x_10, layers.UpSampling2D((2, 2))(x_20)
+    ]), base_filters * 2)
+    x_21 = conv_block(layers.concatenate([
+        x_20, layers.UpSampling2D((2, 2))(x_30)
+    ]), base_filters * 4)
+    x_31 = conv_block(layers.concatenate([
+        x_30, layers.UpSampling2D((2, 2))(x_40)
+    ]), base_filters * 8)
 
     # Level j = 2
-    x_02 = conv_block(layers.concatenate([x_00, x_01, layers.UpSampling2D()(x_11)]), 16)
-    x_12 = conv_block(layers.concatenate([x_10, x_11, layers.UpSampling2D()(x_21)]), 32)
-    x_22 = conv_block(layers.concatenate([x_20, x_21, layers.UpSampling2D()(x_31)]), 64)
+    x_02 = conv_block(layers.concatenate([
+        x_00, x_01, layers.UpSampling2D((2, 2))(x_11)
+    ]), base_filters)
+    x_12 = conv_block(layers.concatenate([
+        x_10, x_11, layers.UpSampling2D((2, 2))(x_21)
+    ]), base_filters * 2)
+    x_22 = conv_block(layers.concatenate([
+        x_20, x_21, layers.UpSampling2D((2, 2))(x_31)
+    ]), base_filters * 4)
 
     # Level j = 3
-    x_03 = conv_block(layers.concatenate([x_00, x_01, x_02, layers.UpSampling2D()(x_12)]), 16)
-    x_13 = conv_block(layers.concatenate([x_10, x_11, x_12, layers.UpSampling2D()(x_22)]), 32)
+    x_03 = conv_block(layers.concatenate([
+        x_00, x_01, x_02, layers.UpSampling2D((2, 2))(x_12)
+    ]), base_filters)
+    x_13 = conv_block(layers.concatenate([
+        x_10, x_11, x_12, layers.UpSampling2D((2, 2))(x_22)
+    ]), base_filters * 2)
 
-    # Level j = 4 (final nested node)
-    x_04 = conv_block(layers.concatenate([x_00, x_01, x_02, x_03,
-                                          layers.UpSampling2D()(x_13)]), 16)
+    # Level j = 4 (final)
+    x_04 = conv_block(layers.concatenate([
+        x_00, x_01, x_02, x_03,
+        layers.UpSampling2D((2, 2))(x_13)
+    ]), base_filters)
 
-    # ========= OUTPUTS =========
+    # ========= OUTPUT(S) =========
     if deep_supervision:
         o1 = layers.Conv2D(number_of_classes, 1, activation="softmax")(x_01)
         o2 = layers.Conv2D(number_of_classes, 1, activation="softmax")(x_02)
-        o3 = layers.Conv2D(number_of_classes, 1, activation="softmax")(x_03)
+        o3 = layers.Conv2D(number_of_classes, 1, activation="softmax"](x_03)
         o4 = layers.Conv2D(number_of_classes, 1, activation="softmax")(x_04)
-        outputs = layers.Average(name="deep_supervision_average")([o1, o2, o3, o4])
+        outputs = layers.Average()([o1, o2, o3, o4])
     else:
         outputs = layers.Conv2D(number_of_classes, 1, activation="softmax")(x_04)
 
-    model = Model(inputs=[inputs], outputs=[outputs])
-    model.model_name = "unet_plus_plus"
-
+    model = Model(inputs, outputs, name="UNetPlusPlus")
     return model
