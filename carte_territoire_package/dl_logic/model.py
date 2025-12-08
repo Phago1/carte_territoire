@@ -82,9 +82,7 @@ def compile_model(model,
 
     model.compile(optimizer=optimizer,
                   loss=combined_loss,
-                  metrics=['accuracy',
-                           IoU
-                           ]
+                  metrics=[IoU]
                   )
 
     return model
