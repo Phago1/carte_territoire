@@ -260,16 +260,15 @@ def build_model_metrics(model, dataset, num_classes, class_names=None, verbose=T
     miou = np.nanmean(iou_per_class)
 
     if verbose:
-        print("=== Confusion matrix (counts) ===")
-        print(cm)
-
+        # print("=== Confusion matrix (counts) ===")
+        # print(cm)
         print("\n=== IoU per class ===")
         for c in range(num_classes):
             name = class_names[c] if class_names is not None else f"class {c}"
             print(f"{name:20s}: IoU = {iou_per_class[c]:.3f}")
         print(f"\n➡ mIoU globale : {miou:.3f}")
 
-    return cm, iou_per_class, miou
+    return iou_per_class, miou
 
 
 def initialize_unet_model(input_shape: tuple = (CHUNK_SIZE, CHUNK_SIZE, 3),

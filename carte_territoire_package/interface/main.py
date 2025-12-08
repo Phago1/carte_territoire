@@ -100,7 +100,7 @@ def train(ds_train, ds_val, ds_test, epochs: int=100, patience: int=5):
     IoU_train = np.max(history.history['mean_io_u'])
     IoU_val = np.max(history.history['val_mean_io_u'])
 
-    cm_test, IoU_per_class_test, IoU_test = build_model_metrics(model=model,
+    IoU_per_class_test, IoU_test = build_model_metrics(model=model,
                                                 dataset=ds_test,
                                                 num_classes=num_class,
                                                 class_names=target_class_values,
@@ -109,7 +109,6 @@ def train(ds_train, ds_val, ds_test, epochs: int=100, patience: int=5):
     metrics = dict(IoU_train=IoU_train,
                    IoU_val=IoU_val,
                    IoU_test=IoU_test,
-                   cm_test=cm_test,
                    IoU_per_class_test=IoU_per_class_test
                 )
 
@@ -120,9 +119,9 @@ def train(ds_train, ds_val, ds_test, epochs: int=100, patience: int=5):
                   model=model_name,
                   #row_count=len(X_train)      # = nombre de chunk (ou de tuile), a verifier la syntaxe
                   )
-    results saved on hard drive from registry.py
-    save_results(params=params, metrics=metrics)
-    model weight saved on gcs, can be saved locally too
-    save_model(model=model)
+    # results saved on hard drive from registry.py
+    # save_results(params=params, metrics=metrics)
+    # model weight saved on gcs, can be saved locally too
+    # save_model(model=model)
 
     return history, model, metrics, params
