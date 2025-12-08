@@ -1,6 +1,7 @@
 # Here we preprocess the data
 
 import numpy as np
+from carte_territoire_package.dl_logic.labels import reduce_mask
 from carte_territoire_package.params import *
 from google.cloud import storage
 import os
@@ -164,8 +165,8 @@ def chunk_generator(prefix:str):
     """
     ortho_paths, label_paths = pairs_crea(prefix=prefix)
     if prefix == "train/":   # TO REMOVE WHEN GOING FULL SCALE
-        ortho_paths = ortho_paths
-        label_paths = label_paths
+        ortho_paths = ortho_paths[0:2]
+        label_paths = label_paths[0:2]
 
     for ortho_path, label_path in zip(ortho_paths, label_paths):
         with rasterio.open(ortho_path) as src_o:
@@ -176,6 +177,9 @@ def chunk_generator(prefix:str):
             label = src_l.read(1).astype("int32")
 
         img_chunks, lab_chunks = slice_to_chunks(image, label)
+
+        if LBL_REDUCTION==True:
+            lab_chunks = reduce_mask(lab_chunks)
 
         for img_chunk, lab_chunk in zip(img_chunks, lab_chunks):
             yield img_chunk, lab_chunk
