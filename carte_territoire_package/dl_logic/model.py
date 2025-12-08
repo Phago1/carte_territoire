@@ -7,7 +7,7 @@ from keras.callbacks import EarlyStopping
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
-from params import *
+from carte_territoire_package.params import *
 
 def initialize_cnn_model(input_shape: int = (CHUNK_SIZE, CHUNK_SIZE, 3),
                          number_of_classes: int = 7 if LBL_REDUCTION == True else 16):

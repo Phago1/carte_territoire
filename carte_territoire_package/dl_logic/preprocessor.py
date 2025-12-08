@@ -1,7 +1,7 @@
 # Here we preprocess the data
 
 import numpy as np
-from params import *
+from carte_territoire_package.params import *
 from google.cloud import storage
 import os
 import rasterio

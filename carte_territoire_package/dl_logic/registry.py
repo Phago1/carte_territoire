@@ -3,12 +3,13 @@
 # function to load the model
 
 # libraries
-from params import *
+from carte_territoire_package.params import *
 
 import glob
 import pickle
 import os
 import time
+import keras
 from colorama import Fore, Style
 
 from keras import models

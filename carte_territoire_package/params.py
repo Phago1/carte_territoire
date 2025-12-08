@@ -1,11 +1,11 @@
 import os
 
 # Size of the chunk to train the model (e.g. 256 x 256)
-CHUNK_SIZE = os.environ.get('CHUNK_SIZE')
+CHUNK_SIZE = int(os.environ.get('CHUNK_SIZE'))
 # Threshold of class null > if 0.1 -> chunk with less than 10% of class null is cleared for model training
-THRESHOLD_0 = os.environ.get('THRESHOLD_0')
+THRESHOLD_0 = float(os.environ.get('THRESHOLD_0'))
 # Size of the batch to train the model
-BATCH_SIZE = os.environ.get('BATCH_SIZE')
+BATCH_SIZE = int(os.environ.get('BATCH_SIZE'))
 # Reduction of number of classes from 15 to 7 : True or False, if True we work in 7 classes
 LBL_REDUCTION = os.environ.get('LBL_REDUCTION')
 
