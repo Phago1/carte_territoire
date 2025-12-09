@@ -113,7 +113,7 @@ def train(ds_train, ds_val, ds_test, epochs: int=100, patience: int=5):
                 )
 
     params = dict(context="train",
-                  model=model_name,
+                  model=MODEL_ARCH,
                   lbl_reduction=LBL_REDUCTION,
                   chunk_size=CHUNK_SIZE,
                   batch_size=BATCH_SIZE,
