@@ -112,8 +112,6 @@ def train(ds_train, ds_val, ds_test, epochs: int=100, patience: int=5):
                    IoU_per_class_test=IoU_per_class_test
                 )
 
-    model_name = model.model_name
-
     params = dict(context="train",
                   model=model_name,
                   lbl_reduction=LBL_REDUCTION,
