@@ -102,7 +102,7 @@ def train(ds_train, ds_val, ds_test, epochs: int=100, patience: int=5):
 
     IoU_per_class_test, IoU_test = build_model_metrics(model=model,
                                                 dataset=ds_test,
-                                                num_classes=num_class,
+                                                number_of_classes=num_class,
                                                 class_names=target_class_values,
                                                 verbose=True)
 
@@ -113,10 +113,11 @@ def train(ds_train, ds_val, ds_test, epochs: int=100, patience: int=5):
                 )
 
     params = dict(context="train",
+                  model=model_name,
+                  lbl_reduction=LBL_REDUCTION,
                   chunk_size=CHUNK_SIZE,
-                  MODEL_ARCH=MODEL_ARCH,
-                  reduction= LBL_REDUCTION,
-                  BATCH_SIZE=BATCH_SIZE
+                  batch_size=BATCH_SIZE,
+                  learning_rate=LEARNING_RATE,
                   )
 
     save_results(params=params, metrics=metrics)
@@ -126,3 +127,7 @@ def train(ds_train, ds_val, ds_test, epochs: int=100, patience: int=5):
     print('model weight')
 
     return history, model, metrics, params
+
+if __name__=="__main__":
+    ds_train, ds_val, ds_test = preprocess()
+    history, model, metrics, params = train(ds_train, ds_val, ds_test)

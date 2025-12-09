@@ -172,7 +172,7 @@ def load_model() -> models:
             latest_model_path_to_save = os.path.join(LOCAL_REGISTRY_PATH, latest_blob.name)
             latest_blob.download_to_filename(latest_model_path_to_save)
 
-            latest_model = models.load_model(latest_model_path_to_save)
+            latest_model = models.load_model(latest_model_path_to_save, compile=False)
 
             print("✅ Latest model downloaded from cloud storage")
 
