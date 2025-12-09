@@ -3,6 +3,7 @@ import numpy as np
 import rasterio
 from pathlib import Path
 import matplotlib.pyplot as plt
+import tensorflow as tf
 
 class Label:
     """Represents a single land-cover class."""
@@ -146,6 +147,16 @@ COSIA16_TO_REDUCED7 = {
     # everything else to 'other'
     0: 7
 }
+
+CLASS_WEIGHTS_7 = tf.constant([
+     1.0,  # 0 other
+            6.0,  # 1 building
+            4.0,  # 2 built surface
+            2.0,  # 3 herbaceous vegetation
+            6.0,  # 4 water-like
+            1.0,  # 5 vegetation
+            1.5,  # 6 agriculture
+        ], dtype=tf.float32)
 
 
 # -----------------------------------------------------
