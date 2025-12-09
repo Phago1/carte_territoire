@@ -102,7 +102,7 @@ def train(ds_train, ds_val, ds_test, epochs: int=100, patience: int=5):
 
     IoU_per_class_test, IoU_test = build_model_metrics(model=model,
                                                 dataset=ds_test,
-                                                num_classes=num_class,
+                                                number_of_classes=num_class,
                                                 class_names=target_class_values,
                                                 verbose=True)
 
