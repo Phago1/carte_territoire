@@ -192,7 +192,7 @@ def plot_predict(X_pred, y_pred, y_label):
     plt.show()
 
 
-def build_model_metrics(model, dataset, num_classes, class_names=None, verbose=True):
+def build_model_metrics(model, dataset, number_of_classes, class_names=None, verbose=True):
     """
     Computes evaluation metrics for a semantic segmentation model.
 
@@ -248,7 +248,7 @@ def build_model_metrics(model, dataset, num_classes, class_names=None, verbose=T
     y_pred_all = np.concatenate(y_pred_all)
 
     # 4️⃣ Confusion matrix
-    cm = confusion_matrix(y_true_all, y_pred_all, labels=range(num_classes))
+    cm = confusion_matrix(y_true_all, y_pred_all, labels=range(number_of_classes))
 
     # 5️⃣ IoU per class
     tp = np.diag(cm).astype(np.float64)
@@ -264,7 +264,7 @@ def build_model_metrics(model, dataset, num_classes, class_names=None, verbose=T
         # print("=== Confusion matrix (counts) ===")
         # print(cm)
         print("\n=== IoU per class ===")
-        for c in range(num_classes):
+        for c in range(number_of_classes):
             name = class_names[c] if class_names is not None else f"class {c}"
             print(f"{name:20s}: IoU = {iou_per_class[c]:.3f}")
         print(f"\n➡ mIoU globale : {miou:.3f}")
