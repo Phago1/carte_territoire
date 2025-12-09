@@ -11,7 +11,7 @@ from PIL import Image
 from keras import models
 from carte_territoire_package.dl_logic.model import predict_model
 from carte_territoire_package.interface.utils import labels_to_rgb
-from carte_territoire_package.dl_logic.labels import flair_class_data
+from carte_territoire_package.dl_logic.labels import FLAIR_CLASS_DATA
 
 app = FastAPI()
 
@@ -34,8 +34,7 @@ app.state.model = models.load_model(model_path, compile=False)
 
 @app.get("/")
 def root():
-    return dict(greeting="Hello")
-
+    return dict(greeting="Hi there, the API is working !")
 
 @app.get("/predict")
 def predict(test:str):
@@ -101,7 +100,7 @@ async def upload_and_process_image(file: UploadFile = File(...)):
     # --------------------------------------------------------------------------
     # --------------------------------------------------------------------------
 
-    y_test = labels_to_rgb(reassembled_array, flair_class_data)
+    y_test = labels_to_rgb(reassembled_array, FLAIR_CLASS_DATA)
     label_pred = Image.fromarray(y_test)
 
     output_buffer = io.BytesIO()
