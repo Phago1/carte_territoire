@@ -101,23 +101,23 @@ and wild like forest (coniferous and deciduous)
 - greenhouse can be added either to agriculture or buildings. for now, we put it in buildings
 """
 REDUCED_7 = {
+    0: [7, "other", "#000000"],
     1: [1, "building", "#db0e9a"],
     2: [2, "built surface", "#938e7b"],
     3: [3, "herbaceous vegetation", "#10cc1c"],
     4: [4, "water", "#1553ae"],
     5: [5, "vegetation", "#095b30"],
-    6: [6, "agriculture", '#fff30d'],
-    7: [7, "other", "#000000"],
+    6: [6, "agriculture", '#fff30d']
 }
 
 REDUCED_7_NO_COLORS = {
+    0: "other",
     1: "building",
     2: "built surface",
     3: "herbaceous vegetation",
     4: "water",
     5: "vegetation",
-    6: "agriculture",
-    7: "other",
+    6: "agriculture"
 }
 
 # mapping from original to reduce
@@ -145,7 +145,7 @@ COSIA16_TO_REDUCED7 = {
     14 : 6,
     15 : 6,
     # everything else to 'other'
-    0: 7
+    0: 0
 }
 
 CLASS_WEIGHTS_7 = tf.constant([
