@@ -1,6 +1,7 @@
 # Here we preprocess the data
 
 import numpy as np
+from carte_territoire_package.dl_logic.labels import reduce_mask
 from carte_territoire_package.params import *
 from google.cloud import storage
 import os
@@ -163,9 +164,9 @@ def chunk_generator(prefix:str):
       - yields each chunk one by one (image_chunk, label_chunk).
     """
     ortho_paths, label_paths = pairs_crea(prefix=prefix)
-    if prefix == "train/":   # TO REMOVE WHEN GOING FULL SCALE
-        ortho_paths = ortho_paths
-        label_paths = label_paths
+    # if prefix == "train/":   # TO REMOVE WHEN GOING FULL SCALE
+    #     ortho_paths = ortho_paths[0:2]
+    #     label_paths = label_paths[0:2]
 
     for ortho_path, label_path in zip(ortho_paths, label_paths):
         with rasterio.open(ortho_path) as src_o:
@@ -177,6 +178,9 @@ def chunk_generator(prefix:str):
 
         img_chunks, lab_chunks = slice_to_chunks(image, label)
 
+        if LBL_REDUCTION==True:
+            lab_chunks = reduce_mask(lab_chunks)
+
         for img_chunk, lab_chunk in zip(img_chunks, lab_chunks):
             yield img_chunk, lab_chunk
 
@@ -184,7 +188,8 @@ def chunk_generator(prefix:str):
 def get_tf_dataset(
     prefix: str,
     batch_size: int = BATCH_SIZE,
-    shuffle_buffer: int = 1024) -> tf.data.Dataset:
+    shuffle_buffer: int = 1024,
+    cache: bool = CACHE) -> tf.data.Dataset:
     """
     Build a tf.data.Dataset from tiles under the given prefix ('train/' or 'val/').
 
@@ -205,5 +210,11 @@ def get_tf_dataset(
         )
     )
 
-    ds = ds.shuffle(shuffle_buffer).batch(batch_size).prefetch(tf.data.AUTOTUNE)
+    if cache == False:
+        ds = ds.shuffle(shuffle_buffer).batch(batch_size).prefetch(tf.data.AUTOTUNE)
+        print("Dataset creation IS NOT USING CACHE MEMORY. Recommended if RAM<32Go")
+    else:
+        ds = ds.cache().shuffle(shuffle_buffer).batch(batch_size).prefetch(tf.data.AUTOTUNE)
+        print("Dataset creation IS USING CACHE MEMORY. To use only if 32Go<RAM")
+
     return ds

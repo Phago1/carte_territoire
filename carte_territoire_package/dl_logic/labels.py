@@ -11,25 +11,81 @@ class Label:
     color: str
 
 
-# CoSIA doc
-flair_class_data = {
+# CoSIA gpkg > data extracted from our files
+FLAIR_CLASS_DATA = {
 0  : ['other','#000000'],
 1   : ['building','#db0e9a'] ,
 2   : ['pervious surface','#938e7b'],
 3   : ['impervious surface','#f80c00'],
 4   : ['swimming_pool','#3de6eb'],
-5   : ['greenhouse','#9999ff'],
-6   : ['bare_soil','#a97101'],
-7   : ['water','#1553ae'],
-8   : ['snow','#ffffff'],
-9   : ['coniferous','#194a26'],
-10  : ['deciduous','#46e483'],
-11  : ['brushwood','#f3a60d'],
+5   : ['bare_soil','#a97101'],
+6   : ['water','#1553ae'],
+7   : ['snow','#ffffff'],
+8   : ['coniferous','#194a26'],
+9  : ['deciduous','#46e483'],
+10  : ['brushwood','#f3a60d'],
+11  : ['vineyard','#660082'],
 12  : ['herbaceous vegetation','#55ff00'],
 13  : ['agricultural land','#fff30d'],
 14  : ['plowed land','#e4df7c'],
-15  : ['vineyard','#660082'],
+15  : ['greenhouse','#9999ff'],
 }
+
+FLAIR_CLASS_DATA_NO_COLORS = {
+0  : 'other',
+1   : 'building',
+2   : 'pervious surface',
+3   : 'impervious surface',
+4   : 'swimming_pool',
+5   : 'bare_soil',
+6   : 'water',
+7   : 'snow',
+8   : 'coniferous',
+9   : 'deciduous',
+10  : 'brushwood',
+11  : 'vineyard',
+12  : 'herbaceous vegetation',
+13  : 'agricultural land',
+14  : 'plowed land',
+15  : 'greenhouse',
+}
+
+# CLASS_NAMES_EXTRACT = ['other',
+#   'building',
+#   'pervious surface',
+#   'impervious surface',
+#   'swimming_pool',
+#   'bare_soil',
+#   'water',
+#   'snow',
+#   'coniferous',
+#   'deciduous',
+#   'brushwood',
+#   'vineyard',
+#   'herbaceous vegetation',
+#   'agricultural land',
+#   'plowed land',
+#   'greenhouse']
+
+# CoSIA doc
+# flair_class_data = {
+# 0  : ['other','#000000'],
+# 1   : ['building','#db0e9a'] ,
+# 2   : ['pervious surface','#938e7b'],
+# 3   : ['impervious surface','#f80c00'],
+# 4   : ['swimming_pool','#3de6eb'],
+# 5   : ['greenhouse','#9999ff'],
+# 6   : ['bare_soil','#a97101'],
+# 7   : ['water','#1553ae'],
+# 8   : ['snow','#ffffff'],
+# 9   : ['coniferous','#194a26'],
+# 10  : ['deciduous','#46e483'],
+# 11  : ['brushwood','#f3a60d'],
+# 12  : ['herbaceous vegetation','#55ff00'],
+# 13  : ['agricultural land','#fff30d'],
+# 14  : ['plowed land','#e4df7c'],
+# 15  : ['vineyard','#660082'],
+# }
 
 # Reduced schema
 """
@@ -51,6 +107,16 @@ REDUCED_7 = {
     5: [5, "vegetation", "#00a651"],
     6: [6, "agriculture", '#660082'],
     7: [7, "other", "#000000"],
+}
+
+REDUCED_7_NO_COLORS = {
+    1: "building",
+    2: "built surface",
+    3: "bare soil",
+    4: "water",
+    5: "vegetation",
+    6: "agriculture",
+    7: "other",
 }
 
 # mapping from original to reduce
@@ -222,9 +288,9 @@ def build_table(mapping, max_src=16, default=0):
         lut[old] = new
     return lut
 
-LUT_16_TO_7 = build_table(COSIA16_TO_REDUCED7)
 
 def reduce_mask(mask):
+    LUT_16_TO_7 = build_table(COSIA16_TO_REDUCED7)
     return LUT_16_TO_7[mask]
 
 

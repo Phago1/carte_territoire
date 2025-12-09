@@ -8,6 +8,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 from carte_territoire_package.params import *
+from sklearn.metrics import confusion_matrix
+from carte_territoire_package.interface.utils import labels_to_rgb
+from carte_territoire_package.dl_logic.labels import FLAIR_CLASS_DATA
 
 def initialize_cnn_model(input_shape: int = (CHUNK_SIZE, CHUNK_SIZE, 3),
                          number_of_classes: int = 7 if LBL_REDUCTION == True else 16):
@@ -79,15 +82,13 @@ def compile_model(model,
 
     model.compile(optimizer=optimizer,
                   loss=combined_loss,
-                  metrics=['accuracy',
-                           IoU
-                           ]
+                  metrics=[IoU]
                   )
 
     return model
 
 
-def train_model(model, ds_train, ds_val, epochs=100, batch_size = BATCH_SIZE, patience=5):
+def train_model(model, ds_train, ds_val, epochs=100, patience=5):
     """
     train model from train and val tensorfflow datasets
     """
@@ -97,11 +98,10 @@ def train_model(model, ds_train, ds_val, epochs=100, batch_size = BATCH_SIZE, pa
     history = model.fit(ds_train,
               validation_data=ds_val,
               epochs=epochs,
-              batch_size=batch_size,
               callbacks=[es]
               )
 
-    return history, model
+    return history
 
 
 def predict_model(model, X_pred: tuple, input_shape: tuple = (CHUNK_SIZE, CHUNK_SIZE, 3)):
@@ -138,6 +138,9 @@ def predict_model(model, X_pred: tuple, input_shape: tuple = (CHUNK_SIZE, CHUNK_
 
 
 def plot_predict(X_pred, y_pred, y_label):
+
+    y_pred = labels_to_rgb(y_pred, FLAIR_CLASS_DATA)
+    y_label = labels_to_rgb(y_label, FLAIR_CLASS_DATA)
 
     fig, ((ax0, ax1, ax2), (ax3, ax4, ax5), (ax6, ax7, ax8)) = plt.subplots(3, 3, figsize=(18,18))
 
@@ -184,6 +187,86 @@ def plot_predict(X_pred, y_pred, y_label):
     ax8.axis("off")
 
     plt.show()
+
+
+def build_model_metrics(model, dataset, num_classes, class_names=None, verbose=True):
+    """
+    Computes evaluation metrics for a semantic segmentation model.
+
+    This function processes an entire dataset to:
+      - generate predictions for all images,
+      - build a global confusion matrix (num_classes x num_classes),
+      - compute the Intersection over Union (IoU) for each class,
+      - compute the overall mean IoU (mIoU).
+
+    Parameters
+    ----------
+    model : tf.keras.Model
+        The trained segmentation model used to generate predictions.
+
+    dataset : built with get_tf_dataset for test
+
+    num_classes : int
+        Number of segmentation classes.
+
+    class_names : list of str, optional
+        Human-readable class names used when printing results.
+
+    verbose : bool
+        If True, prints the confusion matrix and per-class IoUs.
+
+    Returns
+    -------
+    cm : ndarray (num_classes x num_classes)
+        The confusion matrix built over all pixels of the dataset.
+
+    iou_per_class : ndarray (num_classes,)
+        IoU score for each class.
+
+    miou : float
+        The mean IoU computed over all classes (ignoring NaNs).
+    """
+    y_true_all = []
+    y_pred_all = []
+
+    for images, labels in dataset:
+        # 1. Predictions from test_set
+        preds = model.predict(images, verbose=0)        # (B, H, W, C)
+        y_pred = np.argmax(preds, axis=-1)              # (B, H, W)
+
+        # 2. Convert labels into np array
+        y_true = labels.numpy()                         # (B, H, W)
+
+        # 3. Flatten arrays to produce one big array
+        y_true_all.append(y_true.ravel())
+        y_pred_all.append(y_pred.ravel())
+
+    y_true_all = np.concatenate(y_true_all)
+    y_pred_all = np.concatenate(y_pred_all)
+
+    # 4️⃣ Confusion matrix
+    cm = confusion_matrix(y_true_all, y_pred_all, labels=range(num_classes))
+
+    # 5️⃣ IoU per class
+    tp = np.diag(cm).astype(np.float64)
+    fn = cm.sum(axis=1) - tp    # For a class i: all true pixels of class i that were misclassified elsewhere
+                                # → sum of row i, minus the true positives.
+    fp = cm.sum(axis=0) - tp    # For a class i: all pixels predicted as class i that actually belong to another class
+                                # → sum of column i, minus the true positives.
+    union = tp + fp + fn
+    iou_per_class = np.where(union > 0, tp / union, np.nan)
+    miou = np.nanmean(iou_per_class)
+
+    if verbose:
+        # print("=== Confusion matrix (counts) ===")
+        # print(cm)
+        print("\n=== IoU per class ===")
+        for c in range(num_classes):
+            name = class_names[c] if class_names is not None else f"class {c}"
+            print(f"{name:20s}: IoU = {iou_per_class[c]:.3f}")
+        print(f"\n➡ mIoU globale : {miou:.3f}")
+
+    return iou_per_class, miou
 
 
 def initialize_unet_model(input_shape: tuple = (CHUNK_SIZE, CHUNK_SIZE, 3),
@@ -255,21 +338,30 @@ def initialize_unet_model(input_shape: tuple = (CHUNK_SIZE, CHUNK_SIZE, 3),
     return model
 
 
-def conv_block(inputs, num_filters):
-    x = tf.keras.Sequential([
-        layers.Conv2D(num_filters, 3, padding='same'),
-        layers.BatchNormalization(),
-        layers.Activation('relu'),
-        layers.Conv2D(num_filters, 3, padding='same'),
-        layers.BatchNormalization(),
-        layers.Activation('relu'),
-    ])(inputs)
+
+# ======== Convolution Block UNet++ ========
+def conv_block(x, filters):
+    """
+    Standard conv block for UNet/UNet++:
+    Conv2D -> BN -> ReLU -> Conv2D -> BN -> ReLU
+    """
+    x = layers.Conv2D(filters, 3, padding='same', use_bias=False)(x)
+    x = layers.BatchNormalization()(x)
+    x = layers.ReLU()(x)
+
+    x = layers.Conv2D(filters, 3, padding='same', use_bias=False)(x)
+    x = layers.BatchNormalization()(x)
+    x = layers.ReLU()(x)
     return x
 
 
-def initialize_unet_plus_model(input_shape: tuple = (CHUNK_SIZE, CHUNK_SIZE, 3),
-                               number_of_classes: int = 7 if LBL_REDUCTION==True else 16,
-                               deep_supervision: bool = False):
+# ======== UNet++ Architecture ========
+def initialize_unet_plus_model(
+        input_shape=(256, 256, 3),
+        number_of_classes=16,
+        deep_supervision=False,
+        base_filters=32
+    ):
     """
     U-Net++ model.
 
@@ -283,48 +375,61 @@ def initialize_unet_plus_model(input_shape: tuple = (CHUNK_SIZE, CHUNK_SIZE, 3),
     inputs = Input(shape=input_shape)
 
     # ========= ENCODER =========
-    x_00 = conv_block(inputs, 16)
-    x_10 = conv_block(layers.MaxPooling2D((2, 2))(x_00), 32)
-    x_20 = conv_block(layers.MaxPooling2D((2, 2))(x_10), 64)
-    x_30 = conv_block(layers.MaxPooling2D((2, 2))(x_20), 128)
-    x_40 = conv_block(layers.MaxPooling2D((2, 2))(x_30), 256)
+    x_00 = conv_block(inputs, base_filters)            # 32
+    x_10 = conv_block(layers.MaxPooling2D((2, 2))(x_00), base_filters * 2)   # 64
+    x_20 = conv_block(layers.MaxPooling2D((2, 2))(x_10), base_filters * 4)   # 128
+    x_30 = conv_block(layers.MaxPooling2D((2, 2))(x_20), base_filters * 8)   # 256
+    x_40 = conv_block(layers.MaxPooling2D((2, 2))(x_30), base_filters * 16)  # 512
 
-    # ========= DECODER NESTED (U-Net++ grid) =========
+    # ========= DECODER (nested) =========
     # Level j = 1
-    x_01 = conv_block(layers.concatenate([x_00, layers.UpSampling2D()(x_10)]), 16)
-    x_11 = conv_block(layers.concatenate([x_10, layers.UpSampling2D()(x_20)]), 32)
-    x_21 = conv_block(layers.concatenate([x_20, layers.UpSampling2D()(x_30)]), 64)
-    x_31 = conv_block(layers.concatenate([x_30, layers.UpSampling2D()(x_40)]), 128)
+    x_01 = conv_block(layers.concatenate([
+        x_00, layers.UpSampling2D((2, 2))(x_10)
+    ]), base_filters)
+    x_11 = conv_block(layers.concatenate([
+        x_10, layers.UpSampling2D((2, 2))(x_20)
+    ]), base_filters * 2)
+    x_21 = conv_block(layers.concatenate([
+        x_20, layers.UpSampling2D((2, 2))(x_30)
+    ]), base_filters * 4)
+    x_31 = conv_block(layers.concatenate([
+        x_30, layers.UpSampling2D((2, 2))(x_40)
+    ]), base_filters * 8)
 
     # Level j = 2
-    x_02 = conv_block(layers.concatenate([x_00, x_01, layers.UpSampling2D()(x_11)]), 16)
-    x_12 = conv_block(layers.concatenate([x_10, x_11, layers.UpSampling2D()(x_21)]), 32)
-    x_22 = conv_block(layers.concatenate([x_20, x_21, layers.UpSampling2D()(x_31)]), 64)
+    x_02 = conv_block(layers.concatenate([
+        x_00, x_01, layers.UpSampling2D((2, 2))(x_11)
+    ]), base_filters)
+    x_12 = conv_block(layers.concatenate([
+        x_10, x_11, layers.UpSampling2D((2, 2))(x_21)
+    ]), base_filters * 2)
+    x_22 = conv_block(layers.concatenate([
+        x_20, x_21, layers.UpSampling2D((2, 2))(x_31)
+    ]), base_filters * 4)
 
     # Level j = 3
-    x_03 = conv_block(layers.concatenate([x_00, x_01, x_02, layers.UpSampling2D()(x_12)]), 16)
-    x_13 = conv_block(layers.concatenate([x_10, x_11, x_12, layers.UpSampling2D()(x_22)]), 32)
+    x_03 = conv_block(layers.concatenate([
+        x_00, x_01, x_02, layers.UpSampling2D((2, 2))(x_12)
+    ]), base_filters)
+    x_13 = conv_block(layers.concatenate([
+        x_10, x_11, x_12, layers.UpSampling2D((2, 2))(x_22)
+    ]), base_filters * 2)
 
-    # Level j = 4 (final nested node)
-    x_04 = conv_block(layers.concatenate([x_00, x_01, x_02, x_03,
-                                          layers.UpSampling2D()(x_13)]), 16)
+    # Level j = 4 (final)
+    x_04 = conv_block(layers.concatenate([
+        x_00, x_01, x_02, x_03,
+        layers.UpSampling2D((2, 2))(x_13)
+    ]), base_filters)
 
-    # ========= OUTPUTS =========
+    # ========= OUTPUT(S) =========
     if deep_supervision:
         o1 = layers.Conv2D(number_of_classes, 1, activation="softmax")(x_01)
         o2 = layers.Conv2D(number_of_classes, 1, activation="softmax")(x_02)
         o3 = layers.Conv2D(number_of_classes, 1, activation="softmax")(x_03)
         o4 = layers.Conv2D(number_of_classes, 1, activation="softmax")(x_04)
-        outputs = layers.Average(name="deep_supervision_average")([o1, o2, o3, o4])
+        outputs = layers.Average()([o1, o2, o3, o4])
     else:
         outputs = layers.Conv2D(number_of_classes, 1, activation="softmax")(x_04)
 
-    model = Model(inputs=[inputs], outputs=[outputs])
-    model.model_name = "unet_plus_plus"
-
+    model = Model(inputs, outputs, name="UNetPlusPlus")
     return model
-
-
-
-
-# test
