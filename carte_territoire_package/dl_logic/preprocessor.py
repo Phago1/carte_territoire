@@ -178,8 +178,8 @@ def chunk_generator(prefix:str):
 
         img_chunks, lab_chunks = slice_to_chunks(image, label)
 
-        if LBL_REDUCTION==True:
-            lab_chunks = reduce_mask(lab_chunks)
+        if LBL_REDUCTION:
+             lab_chunks = [reduce_mask(chunk) for chunk in lab_chunks]
 
         for img_chunk, lab_chunk in zip(img_chunks, lab_chunks):
             yield img_chunk, lab_chunk
@@ -205,7 +205,7 @@ def get_tf_dataset(
             ),
             tf.TensorSpec(
                 shape=(CHUNK_SIZE, CHUNK_SIZE),
-                dtype=tf.float32
+                dtype=tf.int32
             ),
         )
     )
