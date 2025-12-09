@@ -150,13 +150,34 @@ COSIA16_TO_REDUCED7 = {
 
 CLASS_WEIGHTS_7 = tf.constant([
      1.0,  # 0 other
-            6.0,  # 1 building
-            4.0,  # 2 built surface
-            2.0,  # 3 herbaceous vegetation
-            6.0,  # 4 water-like
-            1.0,  # 5 vegetation
-            1.5,  # 6 agriculture
+            2.8,  # 1 building
+            2.0,  # 2 built surface
+            1.4,  # 3 herbaceous vegetation
+            2.8,  # 4 water-like
+            0.9,  # 5 vegetation
+            1.0,  # 6 agriculture
         ], dtype=tf.float32)
+
+"""The weights are derived from the inverse class frequencies, which compensate for
+the natural imbalance in the dataset. Rare classes (e.g., buildings, roads, water)
+contribute fewer pixels to the loss and would otherwise be under-optimized.
+
+Raw inverse frequencies w_i = 1 / p_i tend to produce extreme values when a class
+is very rare, which destabilizes training and causes overfitting on minority
+classes. To prevent this, we apply a smoothing transform:
+
+    w_i' = sqrt(w_i)
+
+The square-root reduces the dynamic range of the weights while preserving the
+relative differences between classes.
+
+Finally, the weights are normalized so that dominant classes (vegetation,
+agriculture) remain close to 1, and minority classes keep a moderate weight
+multiplier (≈2–3). This ensures:
+
+• rare classes have enough gradient signal to be learned,
+• frequent classes are not suppressed (avoids underfitting),
+• the overall loss remains numerically stable during training."""
 
 
 # -----------------------------------------------------
