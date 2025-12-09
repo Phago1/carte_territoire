@@ -129,3 +129,7 @@ def train(ds_train, ds_val, ds_test, epochs: int=100, patience: int=5):
     print('model weight')
 
     return history, model, metrics, params
+
+if __name__="__main__":
+    ds_train, ds_val, ds_test = preprocess()
+        history, model, metrics, params = train(ds_train, ds_val, ds_test)
