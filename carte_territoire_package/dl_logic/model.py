@@ -51,6 +51,11 @@ def compile_model(model,
     target_class_ids must contain the ids of the classes to be classified.
     It is used by keras.metrics to compute the IoU for each class in this list.
     """
+    learning_rate = 1e-4
+
+    dice_loss = losses.Dice(reduction='sum_over_batch_size', name='dice')
+    focal_loss = losses.CategoricalFocalCrossentropy(reduction='sum_over_batch_size', name='focal')
+
     def combined_loss(y_true, y_pred):
         """
         one-hot-encode y_true so dice and focal losses can be computed
@@ -62,21 +67,19 @@ def compile_model(model,
         y_true = tf.cast(y_true, tf.int32)
         y_true_oh = tf.one_hot(y_true, depth=number_of_classes)
 
-        dice_loss = losses.Dice(reduction='sum_over_batch_size', name='dice')
-        focal_loss = losses.CategoricalFocalCrossentropy(reduction='sum_over_batch_size', name='focal')
-
         total_loss = 0.5*dice_loss(y_true_oh, y_pred) + 0.5*focal_loss(y_true_oh, y_pred)
 
         return total_loss
 
-    # lr_schedule = schedules.ExponentialDecay(
-    #     initial_learning_rate=1e-3,
-    #     decay_steps=10000,
-    #     decay_rate=0.9,
-    #     staircase=True
-    #     )
+    """decay rate for the learning rate"""
+    lr_schedule = schedules.ExponentialDecay(
+        initial_learning_rate=learning_rate,
+        decay_steps=1000,
+        decay_rate=0.8,
+        staircase=True
+        )
 
-    optimizer = Adam(learning_rate=0.001)
+    optimizer = Adam(learning_rate=lr_schedule)
 
     IoU = metrics.MeanIoU(num_classes=number_of_classes, sparse_y_true=True, sparse_y_pred=False)
 
@@ -103,7 +106,7 @@ def train_model(model, ds_train, ds_val, epochs=100, patience=5):
               callbacks=[es]
               )
 
-    return history
+    return history, model
 
 
 def predict_model(model, X_pred: tuple, input_shape: tuple = (CHUNK_SIZE, CHUNK_SIZE, 3)):
