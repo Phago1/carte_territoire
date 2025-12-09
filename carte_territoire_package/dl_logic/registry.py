@@ -18,21 +18,25 @@ from google.cloud import storage
 
 
 """
-dans le main il faut créer un dictionnaire pour params et metrics aves les valeurs qu'on veut sauvegarder
-pour metrics: Iou et ??
-dans le main:
-IoU = dict(Iou = np.min(history.history['iou']))
-params = dict(
-        context="train",
-        class_number= ...,
-        number_of_chunks=len(...),
-        reduction_mask = True
+Params and Metrics should be defined in main.py and it's recommended to save
+them as a dictionary to ease results manupulation.
+-par exemple, dans le main:
+ IoU = dict(Iou = np.max(history.history['mean_io_u']))
+ params = dict(
+              context="train",
+              class_number= ...,
+              number_of_chunks=len(...),
+              reduction_mask = True
 )
 """
 
 # params and metrics
 def save_results(params: dict, metrics: dict):
-
+    """
+    Results are saved locally every time and in the bucket if wanted.
+    Date and time as the model's name to track training.
+    When saved in the bucket, it is done/uploaded from the local file.
+    """
     timestamp = time.strftime("%Y%m%d-%H%M%S")
 
     # Save params locally
@@ -51,7 +55,7 @@ def save_results(params: dict, metrics: dict):
         with open(metrics_path, "wb") as file:
             pickle.dump(metrics, file)
 
-    print("✅ Results saved locally")
+    print(f"✅ Results saved locally. \nPath: {LOCAL_REGISTRY_PATH}")
 
     # Google Cloud Storage saving
     if MODEL_TARGET == "gcs":
@@ -71,29 +75,48 @@ def save_results(params: dict, metrics: dict):
 
         print(f"✅ Results uploaded to GCS bucket '{BUCKET_NAME}'")
 
+    if MODEL_TARGET == "local":
+        print('model only saved locally')
+
 # ------------------------------------------------------------------------------
 # ------------------------------------------------------------------------------
 def save_model(model: keras.Model = None) -> None:
     """
-    Persist trained model locally on the hard drive at f"{LOCAL_REGISTRY_PATH}/models/{timestamp}.h5"
-    - if MODEL_TARGET='gcs', also persist it in your bucket on GCS at "models/{timestamp}.h5" --> unit 02 only
-    - if MODEL_TARGET='mlflow', also persist it on MLflow instead of GCS (for unit 0703 only) --> unit 03 only
+    Model saved locally and/or in the bucket, set the .env to choose.
+    Date and time as the model's name to track training.
     """
-
     timestamp = time.strftime("%Y%m%d-%H%M%S")
-    model_path = os.path.join(LOCAL_REGISTRY_PATH, "models", f"{timestamp}.h5")
+    model_path = os.path.join(LOCAL_REGISTRY_PATH, "models", f"{timestamp}.keras")
 
-    # Save model locally
-    if LOCAL_SAVE == 'yes':
-        model.save(model_path)
-        # Ensure folder exists
-        os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    if MODEL_TARGET not in {"local", "gcs", "both"}:
+        raise ValueError(f"❌ Invalid MODEL_TARGET='{MODEL_TARGET}'. "
+                         "Expected one of: 'local', 'gcs', 'both'.")
 
+    # The model must be saved locally to be uploaded in the bucket
+    model_path = os.path.join(LOCAL_REGISTRY_PATH, "models", f"{timestamp}.keras")
+    # Ensure folder exists
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    model.save(model_path)
+
+    if MODEL_TARGET == 'local':
         print("✅ Model saved locally")
 
-    if MODEL_TARGET == "gcs":
-        # 🎁 We give you this piece of code as a gift. Please read it carefully! Add a breakpoint if needed!
+    elif MODEL_TARGET == "gcs":
+        model_filename = model_path.split("/")[-1] # e.g. "20230208-161047.keras" for instance
+        client = storage.Client()
+        bucket = client.bucket(BUCKET_NAME)
+        blob = bucket.blob(f"models/{model_filename}")
+        blob.upload_from_filename(model_path)
 
+        # for gcs we need a local file to upload, then we can remove it
+        try:
+            os.remove(model_path)
+        except OSError:
+            pass
+        print("✅ Model saved to GCS")
+        return None
+
+    elif MODEL_TARGET == "both":
         model_filename = model_path.split("/")[-1] # e.g. "20230208-161047.h5" for instance
         client = storage.Client()
         bucket = client.bucket(BUCKET_NAME)
@@ -101,7 +124,6 @@ def save_model(model: keras.Model = None) -> None:
         blob.upload_from_filename(model_path)
 
         print("✅ Model saved to GCS")
-
         return None
 
     return None
@@ -113,11 +135,11 @@ def load_model() -> models:
     Return a saved model:
     - locally (latest one in alphabetical order)
     - or from GCS (most recent one) if MODEL_TARGET=='gcs'  --> for unit 02 only
-    - or from MLFLOW (by "stage") if MODEL_TARGET=='mlflow' --> for unit 03 only
 
     Return None (but do not Raise) if no model is found
 
     """
+    print(f'Loading from {MODEL_TARGET}')
 
     if MODEL_TARGET == "local":
         print(Fore.BLUE + f"\nLoad latest model from local registry..." + Style.RESET_ALL)
@@ -126,21 +148,20 @@ def load_model() -> models:
         local_model_directory = os.path.join(LOCAL_REGISTRY_PATH, "models")
         local_model_paths = glob.glob(f"{local_model_directory}/*")
 
+        # safety check if local_model_paths is not empty
         if not local_model_paths:
             return None
 
         most_recent_model_path_on_disk = sorted(local_model_paths)[-1]
-
+        print(most_recent_model_path_on_disk)
         print(Fore.BLUE + f"\nLoad latest model from disk..." + Style.RESET_ALL)
 
-        latest_model = models.load_model(most_recent_model_path_on_disk)
+        latest_model = models.load_model(most_recent_model_path_on_disk, compile=False)
 
         print("✅ Model loaded from local disk")
-
         return latest_model
 
-    elif MODEL_TARGET == "gcs":
-        # 🎁 We give you this piece of code as a gift. Please read it carefully! Add a breakpoint if needed!
+    elif MODEL_TARGET in {"gcs", "both"}:
         print(Fore.BLUE + f"\nLoad latest model from GCS..." + Style.RESET_ALL)
 
         client = storage.Client()
