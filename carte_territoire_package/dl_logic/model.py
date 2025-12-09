@@ -105,7 +105,7 @@ def train_model(model, ds_train, ds_val, epochs=100, patience=5):
               callbacks=[es]
               )
 
-    return history, model
+    return history
 
 
 def predict_model(model, X_pred: tuple, input_shape: tuple = (CHUNK_SIZE, CHUNK_SIZE, 3)):
