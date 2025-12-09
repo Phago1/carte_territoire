@@ -102,17 +102,17 @@ and wild like forest (coniferous and deciduous)
 REDUCED_7 = {
     1: [1, "building", "#db0e9a"],
     2: [2, "built surface", "#938e7b"],
-    3: [3, "bare soil", "#a97101"],
+    3: [3, "herbaceous vegetation", "#10cc1c"],
     4: [4, "water", "#1553ae"],
-    5: [5, "vegetation", "#00a651"],
-    6: [6, "agriculture", '#660082'],
+    5: [5, "vegetation", "#095b30"],
+    6: [6, "agriculture", '#fff30d'],
     7: [7, "other", "#000000"],
 }
 
 REDUCED_7_NO_COLORS = {
     1: "building",
     2: "built surface",
-    3: "bare soil",
+    3: "herbaceous vegetation",
     4: "water",
     5: "vegetation",
     6: "agriculture",
@@ -124,27 +124,27 @@ REDUCED_7_NO_COLORS = {
 COSIA16_TO_REDUCED7 = {
     # buildings
     1: 1,
-    5: 1,
     # surface
     2: 2,
     3: 2,
     # water-like
     4: 4,
+    6: 4,
     7: 4,
-    # bare-soil
-    6: 3,
-    8: 3,
+    # herbaceous vegetation
+    12: 3,
     # vegetation (coniferous, deciduous, brushwood, herbaceous vegetation)
+    5:5,
+    8:5,
     9: 5,
     10: 5,
-    11: 5,
-    12: 5,
     # agriculture
+    11: 5,
     13 : 6,
     14 : 6,
     15 : 6,
     # everything else to 'other'
-    16: 7
+    0: 7
 }
 
 
