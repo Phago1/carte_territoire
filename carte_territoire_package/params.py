@@ -13,6 +13,7 @@ LBL_REDUCTION = os.environ.get('LBL_REDUCTION')
 # Stores patches of (CHUNK_SIZE*CHUNK_SIZE) in cache : True only if 32Go<RAM
 CACHE = os.environ.get('CACHE')
 
+LEARNING_RATE = os.environ.get('LEARNING_RATE')
 
 # data in bucket or locally
 DATA_LOCATION = os.environ.get('DATA_LOCATION')

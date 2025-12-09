@@ -46,16 +46,13 @@ def initialize_cnn_model(input_shape: int = (CHUNK_SIZE, CHUNK_SIZE, 3),
 
 
 def compile_model(model,
+                  learning_rate = LEARNING_RATE, # can be a float or 'exponential'
                   number_of_classes: int = 7 if LBL_REDUCTION==True else 16):
     """
-    target_class_ids must contain the ids of the classes to be classified.
-    It is used by keras.metrics to compute the IoU for each class in this list.
     """
-    learning_rate = 1e-4
-
+    # --- LOSS ---
     dice_loss = losses.Dice(reduction='sum_over_batch_size', name='dice')
     focal_loss = losses.CategoricalFocalCrossentropy(reduction='sum_over_batch_size', name='focal')
-
     def combined_loss(y_true, y_pred):
         """
         one-hot-encode y_true so dice and focal losses can be computed
@@ -71,19 +68,23 @@ def compile_model(model,
 
         return total_loss
 
-    """decay rate for the learning rate"""
-    lr_schedule = schedules.ExponentialDecay(
-        initial_learning_rate=learning_rate,
-        decay_steps=1000,
-        decay_rate=0.8,
-        staircase=True
-        )
+    # --- LEARNING_RATE ---
+    if learning_rate == 'exponential':
+        learning_rate = schedules.ExponentialDecay(
+            initial_learning_rate=0.001,
+            decay_steps=30*BATCH_SIZE,
+            decay_rate=0.8,
+            staircase=True,
+            )
+        print('✅ LEARNING_RATE is Exponential Decay')
 
-    optimizer = Adam(learning_rate=lr_schedule)
+    elif type(float(learning_rate)) is float:
+        learning_rate = float(learning_rate)
+        print(f'✅ LEARNING_RATE is {learning_rate}')
 
     IoU = metrics.MeanIoU(num_classes=number_of_classes, sparse_y_true=True, sparse_y_pred=False)
 
-    model.compile(optimizer=optimizer,
+    model.compile(optimizer=Adam(learning_rate=learning_rate),
                   loss=combined_loss,
                   metrics=[IoU]
                   )
