@@ -188,7 +188,7 @@ def chunk_generator(prefix:str):
 def get_tf_dataset(
     prefix: str,
     batch_size: int = BATCH_SIZE,
-    shuffle_buffer: int = 1024,
+    shuffle_buffer: int = BATCH_SIZE*32,
     cache: bool = CACHE) -> tf.data.Dataset:
     """
     Build a tf.data.Dataset from tiles under the given prefix ('train/' or 'val/').
