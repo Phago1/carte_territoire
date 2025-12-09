@@ -112,11 +112,11 @@ def train(ds_train, ds_val, ds_test, epochs: int=100, patience: int=5):
                    IoU_per_class_test=IoU_per_class_test
                 )
 
-    model_name = model.model_name
-
     params = dict(context="train",
                   chunk_size=CHUNK_SIZE,
-                  model=model_name
+                  MODEL_ARCH=MODEL_ARCH,
+                  reduction= LBL_REDUCTION,
+                  BATCH_SIZE=BATCH_SIZE
                   )
 
     save_results(params=params, metrics=metrics)
