@@ -16,7 +16,7 @@ DATA_LOCATION = os.environ.get('DATA_LOCATION')
 # model save locally or in the bucket
 MODEL_TARGET = os.environ.get('MODEL_TARGET')
 BUCKET_NAME  = os.environ.get('BUCKET_NAME')
+# origin model load
+MODEL_ORIGIN = os.environ.get('MODEL_ORIGIN')
 
-# local save
-LOCAL_SAVE = os.environ.get('LOCAL_SAVE')
 LOCAL_REGISTRY_PATH =  os.path.join(os.path.expanduser('~'), "Code", "Phago1","training_outputs")
