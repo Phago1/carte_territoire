@@ -165,7 +165,7 @@ def load_model() -> models:
         print(Fore.BLUE + f"\nLoad latest model from GCS..." + Style.RESET_ALL)
 
         client = storage.Client()
-        blobs = list(client.get_bucket(BUCKET_NAME).list_blobs(prefix="training-outputs/models/"))
+        blobs = list(client.get_bucket(BUCKET_NAME).list_blobs(prefix="models/"))
 
         try:
             latest_blob = max(blobs, key=lambda x: x.updated)
