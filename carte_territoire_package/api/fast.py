@@ -11,7 +11,7 @@ from PIL import Image
 from keras import models
 from carte_territoire_package.dl_logic.model import predict_model
 from carte_territoire_package.interface.utils import labels_to_rgb
-from carte_territoire_package.dl_logic.labels import FLAIR_CLASS_DATA
+from carte_territoire_package.dl_logic.labels import FLAIR_CLASS_DATA, REDUCED_7
 
 app = FastAPI()
 
@@ -29,8 +29,9 @@ app.add_middleware(
 ## This will prove very useful for the Demo Day
 current_dir = Path(__file__).parent
 path_to_model_dir = current_dir.parent / 'trained_models'
-model_path = path_to_model_dir / 'my_model_0512.keras'
+model_path = path_to_model_dir / 'my_model_0512.keras'  #'models_20251210-004639.keras'
 app.state.model = models.load_model(model_path, compile=False)
+DICO_LABEL = FLAIR_CLASS_DATA
 
 @app.get("/")
 def root():
@@ -88,10 +89,10 @@ async def upload_and_process_image(file: UploadFile = File(...)):
             col_end = col_start + CHUNK_SIZE
 
             # 3. Split: Extract the current chunk (shape: CHUNK_SIZE, CHUNK_SIZE, 3)
-            current_chunk = cropped_array[row_start:row_end, col_start:col_end, :]
+            current_chunk = cropped_array[row_start:row_end, col_start:col_end, :] / 255.
 
             # 4. Process: Apply the external function
-            processed_chunk = predict_model(app.state.model, current_chunk, (CHUNK_SIZE, CHUNK_SIZE, 3))
+            processed_chunk = predict_model(app.state.model, current_chunk)
 
             # 5. Recombine: Place the result into the correct slice of the output array
             # The output shape is (CHUNK_SIZE, CHUNK_SIZE)
@@ -100,7 +101,7 @@ async def upload_and_process_image(file: UploadFile = File(...)):
     # --------------------------------------------------------------------------
     # --------------------------------------------------------------------------
 
-    y_test = labels_to_rgb(reassembled_array, FLAIR_CLASS_DATA)
+    y_test = labels_to_rgb(reassembled_array, DICO_LABEL)
     label_pred = Image.fromarray(y_test)
 
     output_buffer = io.BytesIO()
