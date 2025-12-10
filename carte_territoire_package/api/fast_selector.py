@@ -30,10 +30,9 @@ app.add_middleware(
 ## This will prove very useful for the Demo Day
 current_dir = Path(__file__).parent
 path_to_model_dir = current_dir.parent / 'trained_models'
-model_path = path_to_model_dir / 'my_model_0512.keras'  #'models_20251210-004639.keras'
+model_path = path_to_model_dir / 'models_20251210-004639.keras' #'my_model_0512.keras'
 app.state.model = models.load_model(model_path, compile=False)
-DICO_LABEL = FLAIR_CLASS_DATA
-CHUNK_SIZE_API = 256
+DICO_LABEL = REDUCED_7
 
 @app.get("/")
 def root():
