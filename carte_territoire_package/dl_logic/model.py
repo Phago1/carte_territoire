@@ -10,7 +10,7 @@ import tensorflow as tf
 from carte_territoire_package.params import *
 from sklearn.metrics import confusion_matrix
 from carte_territoire_package.interface.utils import labels_to_rgb
-from carte_territoire_package.dl_logic.labels import FLAIR_CLASS_DATA
+from carte_territoire_package.dl_logic.labels import FLAIR_CLASS_DATA, REDUCED_7
 
 def initialize_cnn_model(input_shape: int = (CHUNK_SIZE, CHUNK_SIZE, 3),
                          number_of_classes: int = 7 if LBL_REDUCTION == True else 16):
@@ -147,8 +147,9 @@ def predict_model(model, X_pred: tuple, input_shape: tuple = (CHUNK_SIZE, CHUNK_
 
 def plot_predict(X_pred, y_pred, y_label):
 
-    y_pred = labels_to_rgb(y_pred, FLAIR_CLASS_DATA)
-    y_label = labels_to_rgb(y_label, FLAIR_CLASS_DATA)
+    # --- Palette selection ---
+    y_pred = labels_to_rgb(y_pred, REDUCED_7 if LBL_REDUCTION == True else FLAIR_CLASS_DATA)
+    y_label = labels_to_rgb(y_label, REDUCED_7 if LBL_REDUCTION == True else FLAIR_CLASS_DATA)
 
     fig, ((ax0, ax1, ax2)) = plt.subplots(1, 3, figsize=(18,18))
 
@@ -157,11 +158,11 @@ def plot_predict(X_pred, y_pred, y_label):
     ax0.set_title("Image")
     ax0.axis("off")
 
-    ax1.imshow(y_label, cmap="tab20")
+    ax1.imshow(y_label)
     ax1.set_title("Ground truth")
     ax1.axis("off")
 
-    ax2.imshow(y_pred, cmap="tab20")
+    ax2.imshow(y_pred)
     ax2.set_title("Predicted label")
     ax2.axis("off")
 
