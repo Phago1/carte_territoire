@@ -6,4 +6,4 @@ COPY carte_territoire_package carte_territoire_package
 
 RUN pip install -r requirements.txt
 
-CMD uvicorn carte_territoire_package.api.fast:app --host 0.0.0.0 --port $PORT
+CMD uvicorn carte_territoire_package.api.fast_selector:app --host 0.0.0.0 --port $PORT
