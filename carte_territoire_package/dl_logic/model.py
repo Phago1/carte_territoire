@@ -150,49 +150,20 @@ def plot_predict(X_pred, y_pred, y_label):
     y_pred = labels_to_rgb(y_pred, FLAIR_CLASS_DATA)
     y_label = labels_to_rgb(y_label, FLAIR_CLASS_DATA)
 
-    fig, ((ax0, ax1, ax2), (ax3, ax4, ax5), (ax6, ax7, ax8)) = plt.subplots(3, 3, figsize=(18,18))
+    fig, ((ax0, ax1, ax2)) = plt.subplots(1, 3, figsize=(18,18))
 
-    # Compare Ortho to Label
+    # Compare Ortho / Groundtruth / Predicted
     ax0.imshow(X_pred)
-    ax0.set_title("Ortho")
+    ax0.set_title("Image")
     ax0.axis("off")
 
     ax1.imshow(y_label, cmap="tab20")
-    ax1.set_title("Label")
+    ax1.set_title("Ground truth")
     ax1.axis("off")
 
-    ax2.imshow(X_pred, alpha=0.55)
-    ax2.imshow(y_label, cmap="tab20", alpha=0.45)
-    ax2.set_title("Overlay Ortho/Label")
+    ax2.imshow(y_pred, cmap="tab20")
+    ax2.set_title("Predicted label")
     ax2.axis("off")
-
-    # Compare Ortho to Predict
-    ax3.imshow(X_pred)
-    ax3.set_title("Ortho")
-    ax3.axis("off")
-
-    ax4.imshow(y_pred, cmap="tab20")
-    ax4.set_title("Predicted")
-    ax4.axis("off")
-
-    ax5.imshow(X_pred, alpha=0.55)
-    ax5.imshow(y_pred, cmap="tab20", alpha=0.45)
-    ax5.set_title("Overlay Ortho/Predicted")
-    ax5.axis("off")
-
-    # Compare Label to Predict
-    ax6.imshow(y_label, cmap="tab20")
-    ax6.set_title("Label")
-    ax6.axis("off")
-
-    ax7.imshow(y_pred, cmap="tab20")
-    ax7.set_title("Predicted")
-    ax7.axis("off")
-
-    ax8.imshow(y_label, alpha=0.55)
-    ax8.imshow(y_pred, cmap="tab20", alpha=0.45)
-    ax8.set_title("Overlay Label/Predicted")
-    ax8.axis("off")
 
     plt.show()
 
@@ -365,8 +336,8 @@ def conv_block(x, filters):
 
 # ======== UNet++ Architecture ========
 def initialize_unet_plus_model(
-        input_shape=(256, 256, 3),
-        number_of_classes=16,
+        input_shape: tuple = (CHUNK_SIZE, CHUNK_SIZE, 3),
+        number_of_classes: int = 7 if LBL_REDUCTION==True else 16,
         deep_supervision=False,
         base_filters=32
     ):
@@ -441,3 +412,56 @@ def initialize_unet_plus_model(
 
     model = Model(inputs, outputs, name="UNetPlusPlus")
     return model
+
+
+
+# def plot_predict(X_pred, y_pred, y_label):
+
+#     y_pred = labels_to_rgb(y_pred, FLAIR_CLASS_DATA)
+#     y_label = labels_to_rgb(y_label, FLAIR_CLASS_DATA)
+
+#     fig, ((ax0, ax1, ax2), (ax3, ax4, ax5), (ax6, ax7, ax8)) = plt.subplots(3, 3, figsize=(18,18))
+
+#     # Compare Ortho to Label
+#     ax0.imshow(X_pred)
+#     ax0.set_title("Ortho")
+#     ax0.axis("off")
+
+#     ax1.imshow(y_label, cmap="tab20")
+#     ax1.set_title("Label")
+#     ax1.axis("off")
+
+#     ax2.imshow(X_pred, alpha=0.55)
+#     ax2.imshow(y_label, cmap="tab20", alpha=0.45)
+#     ax2.set_title("Overlay Ortho/Label")
+#     ax2.axis("off")
+
+#     # Compare Ortho to Predict
+#     ax3.imshow(X_pred)
+#     ax3.set_title("Ortho")
+#     ax3.axis("off")
+
+#     ax4.imshow(y_pred, cmap="tab20")
+#     ax4.set_title("Predicted")
+#     ax4.axis("off")
+
+#     ax5.imshow(X_pred, alpha=0.55)
+#     ax5.imshow(y_pred, cmap="tab20", alpha=0.45)
+#     ax5.set_title("Overlay Ortho/Predicted")
+#     ax5.axis("off")
+
+#     # Compare Label to Predict
+#     ax6.imshow(y_label, cmap="tab20")
+#     ax6.set_title("Label")
+#     ax6.axis("off")
+
+#     ax7.imshow(y_pred, cmap="tab20")
+#     ax7.set_title("Predicted")
+#     ax7.axis("off")
+
+#     ax8.imshow(y_label, alpha=0.55)
+#     ax8.imshow(y_pred, cmap="tab20", alpha=0.45)
+#     ax8.set_title("Overlay Label/Predicted")
+#     ax8.axis("off")
+
+#     plt.show()
