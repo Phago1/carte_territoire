@@ -10,6 +10,7 @@ import pickle
 import os
 import time
 import keras
+import pandas as pd
 from colorama import Fore, Style
 
 from keras import models
@@ -80,6 +81,76 @@ def save_results(params: dict, metrics: dict):
 
 # ------------------------------------------------------------------------------
 # ------------------------------------------------------------------------------
+
+def load_results_to_dataframe():
+    """
+    Search params and metrics in Bucket which are affiliated to saved models
+    Import them in a single DataFrame with 1 line per run
+    """
+    # import blobs of all models, paramas, and metrics stored in Bucket
+    client = storage.Client()
+
+    blobs_models = list(client.get_bucket(BUCKET_NAME).list_blobs(prefix="models/"))
+    blobs_params = list(client.get_bucket(BUCKET_NAME).list_blobs(prefix="training_output/params/"))
+    blobs_metrics = list(client.get_bucket(BUCKET_NAME).list_blobs(prefix="training_output/metrics/"))
+
+    # select params and metrics blobs only related to saved models
+    params_list = []
+    metrics_list = []
+    for blob in blobs_models:
+        patern = str(blob)[-17:-10]
+        for blob_p in blobs_params:
+            if patern in str(blob_p):
+                params_list.append(blob_p)
+        for blob_m in blobs_metrics:
+            if patern in str(blob_m):
+                metrics_list.append(blob_m)
+
+    assert len(params_list) == len(metrics_list)
+
+    # select models only related to saved metrics and params
+    models_list = []
+    for blob in params_list:
+        patern = str(blob)[-17:-10]
+        for blob_m in blobs_models:
+            if patern in str(blob_m):
+                models_list.append(blob_m)
+
+    assert len(params_list) == len(models_list)
+
+    # regroup params, metrics and models linked together
+    params_metrics_models = list(zip(params_list, metrics_list, models_list))
+
+    # initiate an empty pandas dataframe with columns names
+    params_columns = ['context', 'model', 'lbl_reduction', 'chunk_size', 'batch_size', 'learning_rate']
+    metrics_columns = ['IoU_train', 'IoU_val', 'IoU_test', 'IoU_per_class_test']
+    columns = params_columns + metrics_columns + ['model_blob']
+
+    df = pd.DataFrame(columns=columns)
+
+    # feed the df with values extracted from params and metrics pickles
+    # model is stored as a blob and not directly imported to keep a light df
+    for blob in params_metrics_models:
+        blob_bytes_params = blob[0].download_as_bytes()
+        obj_params = pickle.loads(blob_bytes_params)
+        df_params = pd.DataFrame([obj_params])
+
+        blob_bytes_metrics = blob[1].download_as_bytes()
+        obj_metrics = pickle.loads(blob_bytes_metrics)
+        df_metrics = pd.DataFrame([obj_metrics])
+
+        model_blob = blob[1]
+        df_models = pd.DataFrame([model_blob], columns=['model_blob'])
+
+        df_blob = pd.concat((df_params, df_metrics, df_models), axis='columns')
+
+        df = pd.concat((df, df_blob), ignore_index=True)
+
+    return df
+
+# ------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+
 def save_model(model: keras.Model = None) -> None:
     """
     Model saved locally and/or in the bucket, set the .env to choose.
