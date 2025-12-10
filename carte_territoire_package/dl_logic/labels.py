@@ -101,13 +101,13 @@ and wild like forest (coniferous and deciduous)
 - greenhouse can be added either to agriculture or buildings. for now, we put it in buildings
 """
 REDUCED_7 = {
-    0: [7, "other", "#000000"],
-    1: [1, "building", "#db0e9a"],
-    2: [2, "built surface", "#938e7b"],
-    3: [3, "herbaceous vegetation", "#10cc1c"],
-    4: [4, "water", "#1553ae"],
-    5: [5, "vegetation", "#095b30"],
-    6: [6, "agriculture", '#fff30d']
+    0: ["other", "#000000"],
+    1: ["building", "#db0e9a"],
+    2: ["built surface", "#938e7b"],
+    3: ["herbaceous vegetation", "#10cc1c"],
+    4: ["water", "#1553ae"],
+    5: ["vegetation", "#095b30"],
+    6: ["agriculture", "#fff30d"],
 }
 
 REDUCED_7_NO_COLORS = {
