@@ -132,7 +132,11 @@ def predict_model(model, X_pred: tuple, input_shape: tuple = (CHUNK_SIZE, CHUNK_
                         antialias=True)
         print(f"X_pred resized from {shape} to {X_pred.shape}")
 
+    X_pred = X_pred/255.
+    print(f'X_pred normalized, X_pred[0,0,:]={X_pred[0,0,:]}')
+
     X_pred = np.expand_dims(X_pred, axis=0)
+    print(f'dim added to X_pred, X_pred.shape={X_pred.shape}')
 
     y_pred = model.predict(X_pred)
     y_pred = y_pred.reshape(y_pred[0].shape)
