@@ -148,15 +148,35 @@ COSIA16_TO_REDUCED7 = {
     0: 0
 }
 
-CLASS_WEIGHTS_7 = tf.constant([
-     1.0,  # 0 other
-            2.8,  # 1 building
-            2.0,  # 2 built surface
-            1.4,  # 3 herbaceous vegetation
-            2.8,  # 4 water-like
-            0.9,  # 5 vegetation
-            1.0,  # 6 agriculture
-        ], dtype=tf.float32)
+CLASS_WEIGHTS_7 = [
+    1.0,  # 0 other
+    2.8,  # 1 building
+    2.0,  # 2 built surface
+    1.4,  # 3 herbaceous vegetation
+    2.0,  # 4 water-like
+    0.9,  # 5 vegetation
+    1.0,  # 6 agriculture
+]
+
+
+CLASS_WEIGHTS_16 = [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+        ]
 
 """The weights are derived from the inverse class frequencies, which compensate for
 the natural imbalance in the dataset. Rare classes (e.g., buildings, roads, water)

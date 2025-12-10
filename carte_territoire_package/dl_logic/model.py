@@ -10,7 +10,7 @@ import tensorflow as tf
 from carte_territoire_package.params import *
 from sklearn.metrics import confusion_matrix
 from carte_territoire_package.interface.utils import labels_to_rgb
-from carte_territoire_package.dl_logic.labels import FLAIR_CLASS_DATA, REDUCED_7
+from carte_territoire_package.dl_logic.labels import *
 
 def initialize_cnn_model(input_shape: int = (CHUNK_SIZE, CHUNK_SIZE, 3),
                          number_of_classes: int = 7 if LBL_REDUCTION == True else 16):
@@ -50,9 +50,14 @@ def compile_model(model,
                   number_of_classes: int = 7 if LBL_REDUCTION==True else 16):
     """
     """
+    # --- CLASS WEIGHTS ---
+    class_weights_list = CLASS_WEIGHTS_7 if LBL_REDUCTION else CLASS_WEIGHTS_16
+    class_weights = tf.constant(class_weights_list, dtype=tf.float32)  # (C,)
+
     # --- LOSS ---
     dice_loss = losses.Dice(reduction='sum_over_batch_size', name='dice')
-    focal_loss = losses.CategoricalFocalCrossentropy(reduction='sum_over_batch_size', name='focal')
+    focal_loss = losses.CategoricalFocalCrossentropy(reduction='none', name='focal')
+
     def combined_loss(y_true, y_pred):
         """
         one-hot-encode y_true so dice and focal losses can be computed
@@ -64,7 +69,20 @@ def compile_model(model,
         y_true = tf.cast(y_true, tf.int32)
         y_true_oh = tf.one_hot(y_true, depth=number_of_classes)
 
-        total_loss = 0.5*dice_loss(y_true_oh, y_pred) + 0.5*focal_loss(y_true_oh, y_pred)
+        dice_term = dice_loss(y_true_oh, y_pred)
+
+        focal_per_pixel = focal_loss(y_true_oh, y_pred)
+
+        # Construction des poids par pixel
+        #    class_weights : (C,)
+        #    y_true        : (B, H, W)
+        weights = tf.gather(class_weights, y_true)
+
+        # Application des poids sur la partie Focal
+        focal_weighted = focal_per_pixel * tf.cast(weights, tf.float32)  # (B, H, W)
+        focal_term = tf.reduce_mean(focal_weighted)          # scalar
+
+        total_loss = 0.5 * dice_term + 0.5 * focal_term
 
         return total_loss
 
