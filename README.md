@@ -1,12 +1,18 @@
 =======================================================
+
 ------------------carte et territoire------------------
 
-This package is to classify aerial images of earth based on 
-Institut National des Informations Géographique (IGN)  dataset
+This package is to train a deep-learning model based on semantic segmentation.
+The goal is to classify aerial images of earth based on 
+Institut National des Informations Géographique (IGN) dataset.
 
-Goal: is to give an image of a territory that has at least
-256x256 pixels and our model will return a classification
+Give an image of a region, that has at least
+256x256 pixels, to the model and it will return a classification
 of that territory
+
+The dataset:
+IGN has a database of satellite ORTHO-Images (Near-Infrared - Red - Green) of various french
+territories. We selected the dataset from the Belfort aerea.
 
 files:
 - dl_logic/preprocessor.py
@@ -33,10 +39,19 @@ merge_counts : merges one dict of class distribution to a new one
 compute_dataset_class_stats :
 
 ---- model.py ----
+we initialize three models with different architectures, cnn, U-net and U-net+.
+The models are built with the Tenserflow library
+initialize_cnn_model
+initialize_unet_model
+initialize_unet_plus_model
+compile_model : the learning rate can be either a float or exponential. The target class is
+either reduce to seven classes or not. There is 16 classes originally.
+train_model
 
 ---- preprocessor.py ----
 
 ----registry.py ----
+The functions to save the metrics and the model's parameters and the model.
 
 -------------------------
 
