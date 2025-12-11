@@ -7,12 +7,16 @@ The goal is to classify aerial images of earth based on
 Institut National des Informations Géographique (IGN) dataset.
 
 Give an image of a region, that has at least
-256x256 pixels, to the model and it will return a classification
-of that territory
+256x256 pixels, to the model and it will return a territory's classification.
+It can be used to record the evolution of the surface type (man made's construction, agriculture, deforestation...)
 
 The dataset:
 IGN has a database of satellite ORTHO-Images (Near-Infrared - Red - Green) of various french
 territories. We selected the dataset from the Belfort aerea.
+
+The app:
+The app is online with Streamlit, the code is in another repository carte-territoire-website
+created by A. Pareux (one of the contributors)
 
 files:
 - dl_logic/preprocessor.py
@@ -51,7 +55,7 @@ train_model
 ---- preprocessor.py ----
 
 ----registry.py ----
-The functions to save the metrics and the model's parameters and the model.
+The functions to save the metrics and the model's parameters and another to save the model.
 
 -------------------------
 
