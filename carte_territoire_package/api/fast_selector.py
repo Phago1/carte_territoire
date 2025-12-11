@@ -25,14 +25,21 @@ app.add_middleware(
     allow_headers=["*"],  # Allows all headers
 )
 
-## 💡 Preload the model to accelerate the predictions
-## and then store the model in an `app.state.model` global variable, accessible across all routes!
-## This will prove very useful for the Demo Day
+## 💡 Preload the models to accelerate the predictions
+
 current_dir = Path(__file__).parent
 path_to_model_dir = current_dir.parent / 'trained_models'
-model_path = path_to_model_dir / 'models_20251210-004639.keras' #'my_model_0512.keras'
-app.state.model = models.load_model(model_path, compile=False)
-DICO_LABEL = REDUCED_7
+
+# --- MODEL 1: Original Model (full 16 classes) ---
+model1_path = path_to_model_dir / 'my_model_0512.keras'
+app.state.model = models.load_model(model1_path, compile=False)
+app.state.DICO_LABEL_FULL = FLAIR_CLASS_DATA
+
+# --- MODEL 2: Latest Model ---
+model2_path = path_to_model_dir / 'models_20251210-004639.keras'
+# Load the second model into a new state variable
+app.state.model2 = models.load_model(model2_path, compile=False)
+app.state.DICO_LABEL_REDUCED = REDUCED_7
 
 @app.get("/")
 def root():
@@ -57,22 +64,66 @@ async def upload_and_process_image(file: UploadFile = File(...)):
     array = np.array(image)
     X_test = array[:,:,:3]
     shape_orig = X_test.shape
-
+    lenX = shape_orig[0]
+    lenY = shape_orig[1]
+    if lenX > lenY:
+        X_test = X_test[:lenY, :lenY,:]
+    else:
+        X_test = X_test[:lenX, :lenX,:]
     # 3. Process: Apply the model
-    y_pred = predict_model(app.state.model, X_test)
+    y_pred = predict_model(app.state.model, X_test, (256, 256, 3))
 
-    # 5. Recombine: Place the result into the correct slice of the output array
-    # The output shape is (CHUNK_SIZE, CHUNK_SIZE)
-
+    # 4. Resize back if need be
     y_pred_back = tf.image.resize(np.expand_dims(y_pred ,-1),
                         size=shape_orig[:2],
                         preserve_aspect_ratio=True,
                         antialias=True)
     y_test = y_pred_back[:, :, 0].numpy().astype(np.int32)
-    # --------------------------------------------------------------------------
-    # --------------------------------------------------------------------------
 
-    y_test = labels_to_rgb(y_test, DICO_LABEL)
+    # 5. Colorize and send back
+    y_test = labels_to_rgb(y_test, app.state.DICO_LABEL_FULL)
+    label_pred = Image.fromarray(y_test)
+
+    output_buffer = io.BytesIO()
+
+    label_pred.save(output_buffer, format="PNG")
+    processed_image_bytes = output_buffer.getvalue()
+
+    return Response(content=processed_image_bytes, media_type="image/PNG")
+
+@app.post("/upload-and-process-reduced/")
+async def upload_and_process_image(file: UploadFile = File(...)):
+    """
+    Receives an uploaded image, processes it, and returns the result.
+    """
+    # 1. Read the file content into memory
+    # You must await file.read() for UploadFile
+    file_content = await file.read()
+
+    # 2. Open the image from the bytes content and convert to array
+    image = Image.open(io.BytesIO(file_content))
+    array = np.array(image)
+    X_test = array[:,:,:3]
+    shape_orig = X_test.shape
+    lenX = shape_orig[0]
+    lenY = shape_orig[1]
+    if lenX > lenY:
+        X_test = X_test[:lenY, :lenY,:]
+    else:
+        X_test = X_test[:lenX, :lenX,:]
+
+    # 3. Process: Apply the model
+    y_pred = predict_model(app.state.model2, X_test, (512, 512, 3))
+
+    # 4. Resize back if need be
+    y_pred_back = tf.image.resize(np.expand_dims(y_pred ,-1),
+                        size=shape_orig[:2],
+                        preserve_aspect_ratio=True,
+                        antialias=True)
+    y_test = y_pred_back[:, :, 0].numpy().astype(np.int32)
+
+    # 5. Colorize and send back
+    y_test = labels_to_rgb(y_test, app.state.DICO_LABEL_REDUCED)
     label_pred = Image.fromarray(y_test)
 
     output_buffer = io.BytesIO()
